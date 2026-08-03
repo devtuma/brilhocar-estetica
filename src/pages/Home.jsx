@@ -26,9 +26,15 @@ export default function Home() {
         </div>
       </div>
 
-      <div>
-        <Link to="/booking" className="inline-block bg-primary hover:bg-[#00c853] text-black font-semibold px-6 py-3 rounded-md transition-colors">
-          Agendar serviço
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Link to="/booking" className="text-center bg-primary hover:bg-[#00c853] text-black font-semibold px-6 py-4 rounded-xl transition-colors">
+          Agendar Serviço
+        </Link>
+        <a href="https://wa.me/5511999999999" target="_blank" rel="noreferrer" className="text-center bg-[#25D366] hover:bg-[#1DA851] text-white font-semibold px-6 py-4 rounded-xl transition-colors">
+          Falar no WhatsApp
+        </a>
+        <Link to="/track" className="text-center bg-gray-800 hover:bg-gray-700 text-white font-semibold px-6 py-4 rounded-xl transition-colors">
+          Acompanhar Veículo
         </Link>
       </div>
     </div>
