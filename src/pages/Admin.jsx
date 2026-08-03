@@ -34,9 +34,9 @@ export default function Admin() {
   const done = appointments.filter(a => ['Finalizado', 'Entregue'].includes(a.status)).length;
 
   return (
-    <div className="max-w-6xl pt-8">
-      <h2 className="text-4xl font-bold mb-2">Painel Administrativo</h2>
-      <p className="text-gray-400 mb-12">Controle dos agendamentos, status e WhatsApp automático.</p>
+    <div className="max-w-6xl pt-4 md:pt-8 pb-10">
+      <h2 className="text-3xl md:text-4xl font-bold mb-2">Painel Administrativo</h2>
+      <p className="text-sm md:text-base text-gray-400 mb-8 md:mb-12">Controle dos agendamentos, status e WhatsApp automático.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         <div className="border border-gray-800 rounded-xl p-6 bg-[#0b0b0f]">

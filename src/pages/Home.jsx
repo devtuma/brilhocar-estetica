@@ -2,9 +2,9 @@ import { Link } from 'react-router-dom';
 
 export default function Home() {
   return (
-    <div className="flex flex-col max-w-4xl pt-8">
-      <h1 className="text-4xl font-bold mb-2">BrilhoCar</h1>
-      <p className="text-gray-400 mb-12">
+    <div className="flex flex-col max-w-4xl pt-4 md:pt-8">
+      <h1 className="text-3xl md:text-5xl font-bold mb-2">BrilhoCar</h1>
+      <p className="text-sm md:text-base text-gray-400 mb-8 md:mb-12">
         Sistema de atendimento, agendamento, QR Code, acompanhamento e WhatsApp.
       </p>
 

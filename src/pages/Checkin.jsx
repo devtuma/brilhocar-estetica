@@ -92,9 +92,9 @@ export default function Checkin() {
   };
 
   return (
-    <div className="max-w-6xl pt-8">
-      <h2 className="text-4xl font-bold mb-2">Check-in por QR Code</h2>
-      <p className="text-gray-400 mb-12">Escaneie o QR do cliente para dar entrada no veículo.</p>
+    <div className="max-w-6xl pt-4 md:pt-8 pb-10">
+      <h2 className="text-3xl md:text-4xl font-bold mb-2">Check-in por QR Code</h2>
+      <p className="text-sm md:text-base text-gray-400 mb-8 md:mb-12">Escaneie o QR do cliente para dar entrada no veículo.</p>
 
       {!scanResult ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
