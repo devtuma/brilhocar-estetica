@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Seed Firebase - BrilhoCar</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #39FF14;
+            padding: 40px;
+            line-height: 1.6;
+        }
+        h1 { color: #fff; }
+        .log { color: #ccc; margin: 4px 0; }
+        .log-ok { color: #39FF14; }
+        .log-err { color: #ef4444; font-weight: bold; }
+        .log-warn { color: #f59e0b; }
+        .log-info { color: #3b82f6; }
+        button {
+            background: #39FF14;
+            color: #000;
+            border: none;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        button:hover { background: #7FFF50; }
+        #output {
+            background: #121212;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #2a2a2a;
+            white-space: pre-wrap;
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        a { color: #39FF14; }
+    </style>
+</head>
+<body>
+    <h1>🌱 Seed Firebase - BrilhoCar</h1>
+    <p>Esta página popula o Firebase com dados iniciais (settings, serviços, depoimentos).</p>
+
+    <button onclick="executarSeed()">▶ Executar Seed Agora</button>
+    <a href="admin/index.html" style="margin-left: 20px;">→ Ir para Admin</a>
+
+    <div id="output">Aguardando você clicar no botão acima...</div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+
+    <script>
+        const out = document.getElementById('output');
+        function log(msg, tipo = '') {
+            const div = document.createElement('div');
+            div.className = 'log ' + (tipo ? 'log-' + tipo : '');
+            div.textContent = msg;
+            out.appendChild(div);
+            out.scrollTop = out.scrollHeight;
+            console.log(msg);
+        }
+
+        async function executarSeed() {
+            out.innerHTML = '';
+            log('🌱 SEED BRILHO CAR', 'info');
+            log('========================================', 'info');
+
+            try {
+                if (typeof firebase === 'undefined') {
+                    log('❌ Firebase SDK não carregou. Recarregue a página (Ctrl+Shift+R)', 'err');
+                    return;
+                }
+                log('✅ Firebase SDK carregado', 'ok');
+
+                const cfg = window.FIREBASE_CONFIG;
+                if (!cfg || !cfg.apiKey || cfg.apiKey.includes('SUA_API_KEY')) {
+                    log('❌ FIREBASE_CONFIG não encontrado', 'err');
+                    log('cfg = ' + JSON.stringify(cfg), 'err');
+                    return;
+                }
+                log('✅ Config: ' + cfg.projectId, 'ok');
+
+                if (firebase.apps.length === 0) {
+                    firebase.initializeApp(cfg);
+                }
+                log('✅ Firebase inicializado', 'ok');
+
+                const db = firebase.firestore();
+
+                // Settings
+                log('📝 Criando settings/business...', 'info');
+                await db.collection('settings').doc('business').set({
+                    businessName: 'BrilhoCar Estética Automotiva',
+                    tagline: 'BrilhoCar • Mauá',
+                    whatsapp: '5511999999999',
+                    instagram: 'brilhocar.estetica',
+                    address: 'Rua Aramis Forte, 340 — Mauá/SP',
+                    horario: 'Seg–Sáb: 8h às 18h',
+                    workingDays: [1, 2, 3, 4, 5, 6],
+                    workingHours: { start: '08:00', end: '18:00' },
+                    slotDuration: 60,
+                    breakTime: 15,
+                    maxPerDay: 8,
+                    blockedDates: [],
+                    activeTheme: 'default',
+                    stats: [
+                        { value: 500, suffix: '+', label: 'Carros Atendidos' },
+                        { value: 5, suffix: '+', label: 'Anos de Experiência' },
+                        { value: 4.9, suffix: '★', label: 'Avaliação no Google', isDecimal: true },
+                        { value: 100, suffix: '%', label: 'Satisfação Garantida' }
+                    ],
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                log('✅ settings/business salvo', 'ok');
+
+                // Services
+                log('🛠️ Criando serviços...', 'info');
+                const servicos = [
+                    { nome: 'Lavagem Completa', preco: 80, duracao: '1-2h', descricao: 'Lavagem externa e interna completa.', ativo: true, ordem: 1 },
+                    { nome: 'Polimento Técnico', preco: 250, duracao: '4-6h', descricao: 'Remoção de riscos e oxidação.', ativo: true, ordem: 2 },
+                    { nome: 'Vitrificação', preco: 800, duracao: '1 dia', descricao: 'Proteção cerâmica de longa duração.', ativo: true, ordem: 3 },
+                    { nome: 'Higienização Interna', preco: 200, duracao: '3-4h', descricao: 'Bancos, tapetes, teto e painel.', ativo: true, ordem: 4 },
+                    { nome: 'PPF — Proteção de Pintura', preco: 0, duracao: 'Variável', descricao: 'Película poliuretano.', ativo: true, ordem: 5 },
+                    { nome: 'Lavagem Premium', preco: 150, duracao: '2-3h', descricao: 'Lavagem + cera + pneus.', ativo: true, ordem: 6 }
+                ];
+
+                const existSvc = await db.collection('services').get();
+                for (const d of existSvc.docs) await d.ref.delete();
+
+                for (const s of servicos) {
+                    await db.collection('services').add({
+                        ...s,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                log('✅ 6 serviços criados', 'ok');
+
+                // Testimonials
+                log('⭐ Criando depoimentos...', 'info');
+                const deps = [
+                    { nome: 'Marcos A.', veiculo: 'Honda Civic', texto: 'Polimento impecável.', estrelas: 5, ativo: true, ordem: 1 },
+                    { nome: 'Rodrigo S.', veiculo: 'Toyota Corolla', texto: 'Vitrificação perfeita.', estrelas: 5, ativo: true, ordem: 2 },
+                    { nome: 'Ana C.', veiculo: 'Volkswagen T-Cross', texto: 'Higienização ótima.', estrelas: 5, ativo: true, ordem: 3 },
+                    { nome: 'Felipe M.', veiculo: 'Chevrolet Onix', texto: 'Atendimento excelente.', estrelas: 5, ativo: true, ordem: 4 }
+                ];
+
+                const existDep = await db.collection('testimonials').get();
+                for (const d of existDep.docs) await d.ref.delete();
+
+                for (const d of deps) {
+                    await db.collection('testimonials').add({
+                        ...d,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                log('✅ 4 depoimentos criados', 'ok');
+
+                // Verificação
+                const allS = await db.collection('settings').get();
+                const allSvcs = await db.collection('services').get();
+                const allDeps = await db.collection('testimonials').get();
+
+                log('========================================', 'info');
+                log('📊 VERIFICAÇÃO:', 'info');
+                log('   settings: ' + allS.size, 'ok');
+                log('   services: ' + allSvcs.size, 'ok');
+                log('   testimonials: ' + allDeps.size, 'ok');
+                log('========================================', 'info');
+                log('🎉 SEED COMPLETO!', 'ok');
+                log('Agora abra admin/index.html e faça login.', 'info');
+
+            } catch (e) {
+                log('❌ ERRO: ' + (e.code || '') + ' - ' + e.message, 'err');
+                if (e.code === 'permission-denied') {
+                    log('💡 Você precisa colar as REGRAS em Firestore > Rules', 'warn');
+                    log('   Use o conteúdo do arquivo firebase-rules.txt', 'warn');
+                }
+                if (e.message && e.message.includes('API key')) {
+                    log('💡 API Key inválida. Verifique firebase-config.js', 'warn');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

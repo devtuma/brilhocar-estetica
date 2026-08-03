@@ -1,0 +1,110 @@
+/*
+  ============================================================
+   REGRAS DE SEGURANÇA DO FIRESTORE — BrilhoCar
+  ============================================================
+   COMO USAR:
+   1. Acesse console.firebase.google.com
+   2. Selecione o projeto "brilhocar-estetica"
+   3. Vá em Firestore Database > Rules
+   4. APAGUE tudo que está lá
+   5. COLE estas regras abaixo
+   6. Clique em "Publicar"
+  ============================================================
+*/
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // === SETTINGS (Configurações do negócio) ===
+    // Leitura pública (site lê config), escrita só autenticado
+    match /settings/{document} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // === SERVICES (Catálogo de serviços) ===
+    // Leitura pública (clientes veem), escrita só autenticado
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // === APPOINTMENTS (Agendamentos) ===
+    // Qualquer um pode ler e criar (site público), update só autenticado
+    match /appointments/{appointmentId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if request.auth != null;
+    }
+
+    // === CLIENTS (Clientes) ===
+    // Só autenticado lê/atualiza/deleta, qualquer um pode criar
+    match /clients/{clientId} {
+      allow read: if request.auth != null;
+      allow create: if true;
+      allow update, delete: if request.auth != null;
+    }
+
+    // === TRANSACTIONS (Financeiro) ===
+    // Só autenticado
+    match /transactions/{transactionId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // === TESTIMONIALS (Depoimentos) ===
+    // Leitura pública, escrita só autenticado
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // === IMAGES (URLs de imagens) ===
+    // Leitura pública, escrita só autenticado
+    match /images/{imageId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // === AUDIT_LOGS (Histórico) ===
+    // Só autenticado pode ler/criar, ninguém deleta
+    match /audit_logs/{logId} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if false;
+    }
+  }
+}
+
+/*
+  ============================================================
+   REGRAS DE SEGURANÇA DO STORAGE — BrilhoCar
+  ============================================================
+   1. Vá em Storage > Rules
+   2. APAGUE tudo
+   3. COLE estas regras
+   4. Publique
+  ============================================================
+*/
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucketName}/o {
+
+    // Imagens públicas (galeria, logo, hero)
+    match /images/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Fotos de veículos
+    match /vehicles/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Bloqueia todo o resto por padrão
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

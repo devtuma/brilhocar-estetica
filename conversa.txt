@@ -1,0 +1,730 @@
+# CLEAN CAR — Arquitetura do Sistema MVP
+
+## 1. Objetivo do MVP
+
+Criar um sistema web/app para estética automotiva com:
+
+* Agendamento online
+* Geração automática de QR Code
+* Check-in por QR Code na entrada
+* Controle de status do serviço
+* Envio de mensagens pelo WhatsApp
+* Histórico do cliente e veículo
+* Painel administrativo para gestão diária
+
+---
+
+# 2. Perfis de Usuário
+
+## Cliente
+
+Pode:
+
+* Agendar serviço
+* Receber QR Code
+* Acompanhar status
+* Falar pelo WhatsApp
+* Ver histórico de serviços
+
+## Funcionário / Operador
+
+Pode:
+
+* Escanear QR Code
+* Dar entrada no veículo
+* Atualizar status do serviço
+* Tirar fotos antes/depois
+* Finalizar atendimento
+
+## Administrador
+
+Pode:
+
+* Ver agenda
+* Cadastrar serviços
+* Ver clientes
+* Ver faturamento
+* Gerenciar funcionários
+* Acompanhar todos os veículos
+
+---
+
+# 3. Telas do Aplicativo / Sistema
+
+## Tela 1 — Início Cliente
+
+Elementos:
+
+* Logo Clean Car
+* Botão “Agendar Serviço”
+* Botão “Falar no WhatsApp”
+* Botão “Acompanhar meu veículo”
+* Botão “Serviços”
+
+---
+
+## Tela 2 — Lista de Serviços
+
+Serviços:
+
+1. Lavagem Técnica
+2. Polimento
+3. Vitrificação
+4. Higienização Interna
+5. Revitalização de Farol
+
+Cada serviço deve ter:
+
+* Nome
+* Descrição curta
+* Preço inicial
+* Tempo estimado
+* Botão “Agendar”
+
+---
+
+## Tela 3 — Formulário de Agendamento
+
+Campos:
+
+* Nome do cliente
+* WhatsApp
+* E-mail opcional
+* Marca do veículo
+* Modelo do veículo
+* Placa
+* Serviço escolhido
+* Data
+* Horário
+* Observações
+
+Ao confirmar:
+
+* Criar agendamento
+* Gerar número de OS
+* Gerar QR Code
+* Enviar confirmação por WhatsApp
+
+---
+
+## Tela 4 — Confirmação com QR Code
+
+Mostrar:
+
+* Número da OS
+* Nome do cliente
+* Serviço
+* Data
+* Horário
+* Placa
+* QR Code
+
+Texto:
+
+“Apresente este QR Code na entrada da Clean Car para iniciar seu atendimento.”
+
+---
+
+## Tela 5 — Acompanhar Veículo
+
+Cliente informa:
+
+* Placa ou telefone
+
+Sistema mostra:
+
+* Serviço contratado
+* Status atual
+* Horário de entrada
+* Previsão de finalização
+
+Status possíveis:
+
+1. Agendado
+2. QR Code escaneado
+3. Veículo recebido
+4. Serviço iniciado
+5. Em execução
+6. Finalização
+7. Pronto para retirada
+8. Entregue
+
+---
+
+# 4. Telas do Operador
+
+## Tela 6 — Login Operador
+
+Campos:
+
+* E-mail
+* Senha
+
+Perfis:
+
+* Operador
+* Administrador
+
+---
+
+## Tela 7 — Scanner QR Code
+
+Função:
+
+* Abrir câmera
+* Ler QR Code
+* Buscar agendamento no banco
+* Exibir ficha do cliente
+* Botão “Dar entrada no veículo”
+
+Após clicar:
+
+* Status muda para “Veículo recebido”
+* Registrar horário de entrada
+* Enviar WhatsApp automático
+
+---
+
+## Tela 8 — Ficha do Atendimento
+
+Mostrar:
+
+* OS
+* Cliente
+* WhatsApp
+* Veículo
+* Placa
+* Serviço
+* Data
+* Horário
+* Status
+* Fotos antes
+* Fotos depois
+* Observações internas
+
+Botões:
+
+* Iniciar serviço
+* Atualizar status
+* Adicionar fotos
+* Finalizar serviço
+* Enviar mensagem WhatsApp
+
+---
+
+# 5. Painel Administrativo
+
+## Dashboard
+
+Indicadores:
+
+* Agendamentos do dia
+* Serviços em andamento
+* Serviços finalizados
+* Faturamento do dia
+* Faturamento do mês
+* Clientes cadastrados
+* Ticket médio
+* Serviços mais vendidos
+
+---
+
+## Agenda
+
+Visualização:
+
+* Dia
+* Semana
+* Mês
+
+Cada agendamento deve mostrar:
+
+* Horário
+* Cliente
+* Placa
+* Serviço
+* Status
+
+---
+
+## Clientes
+
+Campos:
+
+* Nome
+* WhatsApp
+* E-mail
+* Quantidade de serviços feitos
+* Último atendimento
+* Valor total gasto
+
+---
+
+## Veículos
+
+Campos:
+
+* Cliente vinculado
+* Marca
+* Modelo
+* Placa
+* Cor
+* Histórico de serviços
+
+---
+
+## Serviços
+
+Administrador pode cadastrar:
+
+* Nome do serviço
+* Descrição
+* Preço
+* Tempo estimado
+* Status ativo/inativo
+
+---
+
+## Relatórios
+
+Filtros:
+
+* Data
+* Serviço
+* Cliente
+* Status
+
+Relatórios:
+
+* Receita por período
+* Serviços mais vendidos
+* Clientes recorrentes
+* Atendimentos por funcionário
+
+---
+
+# 6. Banco de Dados — Firebase Firestore
+
+## Collection: users
+
+Campos:
+
+* id
+* name
+* email
+* phone
+* role: client / operator / admin
+* createdAt
+
+---
+
+## Collection: clients
+
+Campos:
+
+* id
+* name
+* phone
+* email
+* createdAt
+* totalAppointments
+* totalSpent
+
+---
+
+## Collection: vehicles
+
+Campos:
+
+* id
+* clientId
+* brand
+* model
+* plate
+* color
+* createdAt
+
+---
+
+## Collection: services
+
+Campos:
+
+* id
+* name
+* description
+* price
+* estimatedTimeMinutes
+* active
+
+---
+
+## Collection: appointments
+
+Campos:
+
+* id
+* osNumber
+* clientId
+* vehicleId
+* serviceId
+* date
+* time
+* status
+* qrCodeData
+* qrCodeImageUrl
+* notes
+* createdAt
+* checkInAt
+* startedAt
+* finishedAt
+* deliveredAt
+* totalPrice
+
+---
+
+## Collection: service_photos
+
+Campos:
+
+* id
+* appointmentId
+* type: before / after
+* imageUrl
+* uploadedBy
+* createdAt
+
+---
+
+## Collection: status_logs
+
+Campos:
+
+* id
+* appointmentId
+* oldStatus
+* newStatus
+* updatedBy
+* createdAt
+
+---
+
+## Collection: whatsapp_logs
+
+Campos:
+
+* id
+* appointmentId
+* clientPhone
+* messageType
+* messageText
+* status
+* sentAt
+
+---
+
+# 7. Fluxo do QR Code
+
+## Quando o cliente agenda
+
+O sistema gera:
+
+OS exemplo:
+
+CC-2026-000001
+
+QR Code com:
+
+{
+"appointmentId": "abc123",
+"osNumber": "CC-2026-000001",
+"plate": "ABC1D23"
+}
+
+O QR Code não deve conter dados sensíveis completos.
+
+---
+
+## Na entrada
+
+1. Funcionário abre tela “Scanner QR”
+2. Escaneia QR Code
+3. Sistema busca appointmentId
+4. Abre ficha do agendamento
+5. Funcionário confirma:
+   “Dar entrada no veículo”
+6. Status muda para:
+   “Veículo recebido”
+7. WhatsApp é enviado ao cliente
+
+---
+
+# 8. Automações WhatsApp
+
+## Mensagem 1 — Confirmação de Agendamento
+
+Olá, {{nome}}.
+
+Seu agendamento na Clean Car foi confirmado.
+
+Serviço: {{servico}}
+Data: {{data}}
+Horário: {{horario}}
+OS: {{os}}
+
+Apresente seu QR Code na entrada.
+
+---
+
+## Mensagem 2 — Lembrete 24h antes
+
+Olá, {{nome}}.
+
+Lembrete: seu atendimento na Clean Car será amanhã às {{horario}}.
+
+Serviço: {{servico}}
+
+---
+
+## Mensagem 3 — Veículo Recebido
+
+Olá, {{nome}}.
+
+Seu veículo {{modelo}} placa {{placa}} foi recebido pela equipe Clean Car.
+
+Status: Veículo recebido.
+
+---
+
+## Mensagem 4 — Serviço Iniciado
+
+Seu serviço foi iniciado.
+
+Status atual: Serviço iniciado.
+
+---
+
+## Mensagem 5 — Em Finalização
+
+Estamos finalizando os detalhes do seu veículo.
+
+Em breve avisaremos quando estiver pronto para retirada.
+
+---
+
+## Mensagem 6 — Pronto para Retirada
+
+Olá, {{nome}}.
+
+Seu veículo está pronto para retirada na Clean Car.
+
+Obrigado pela confiança.
+
+---
+
+## Mensagem 7 — Pós-atendimento
+
+Olá, {{nome}}.
+
+Como foi sua experiência na Clean Car?
+
+Avalie nosso atendimento de 1 a 5 estrelas.
+
+---
+
+# 9. Tecnologias Recomendadas
+
+## Frontend
+
+Flutter
+
+Aplicações:
+
+* App Cliente
+* App Operador
+* Painel Web Administrativo
+
+---
+
+## Backend
+
+Firebase
+
+Usar:
+
+* Firebase Authentication
+* Cloud Firestore
+* Firebase Storage
+* Firebase Hosting
+* Firebase Cloud Functions
+
+---
+
+## QR Code
+
+Pacotes Flutter:
+
+* qr_flutter
+* mobile_scanner
+
+---
+
+## WhatsApp
+
+Opções:
+
+1. WhatsApp Business API oficial
+2. Z-API
+3. Twilio WhatsApp
+4. Evolution API
+5. Integração via n8n
+
+---
+
+## Automações
+
+n8n
+
+Fluxos:
+
+* Novo agendamento → enviar WhatsApp
+* 24h antes → enviar lembrete
+* Status atualizado → enviar mensagem
+* Serviço finalizado → pedir avaliação
+
+---
+
+# 10. Estrutura do Projeto Flutter
+
+/lib
+
+/screens
+
+* home_screen.dart
+* services_screen.dart
+* booking_screen.dart
+* qr_confirmation_screen.dart
+* track_vehicle_screen.dart
+* login_screen.dart
+* operator_scanner_screen.dart
+* appointment_detail_screen.dart
+* admin_dashboard_screen.dart
+* admin_calendar_screen.dart
+* admin_clients_screen.dart
+* admin_services_screen.dart
+
+/models
+
+* user_model.dart
+* client_model.dart
+* vehicle_model.dart
+* service_model.dart
+* appointment_model.dart
+* status_log_model.dart
+
+/services
+
+* firebase_service.dart
+* appointment_service.dart
+* whatsapp_service.dart
+* qr_service.dart
+* auth_service.dart
+* storage_service.dart
+
+/widgets
+
+* service_card.dart
+* status_badge.dart
+* clean_car_button.dart
+* appointment_card.dart
+* qr_view_widget.dart
+
+---
+
+# 11. Regras de Negócio
+
+1. Todo agendamento deve gerar OS única.
+2. Todo agendamento deve gerar QR Code.
+3. QR Code só pode ser usado para um check-in.
+4. Status deve ser registrado em histórico.
+5. Cliente deve receber mensagem quando status mudar.
+6. Apenas operador ou admin pode mudar status.
+7. Apenas admin pode alterar preço dos serviços.
+8. Fotos antes/depois ficam vinculadas à OS.
+9. Veículo entregue encerra o atendimento.
+10. Histórico nunca deve ser apagado.
+
+---
+
+# 12. MVP — Entregáveis da Primeira Versão
+
+## Cliente
+
+* Tela inicial
+* Lista de serviços
+* Agendamento
+* Confirmação com QR Code
+* Acompanhamento por placa/telefone
+* Botão WhatsApp
+
+## Operador
+
+* Login
+* Scanner QR Code
+* Ficha de atendimento
+* Atualização de status
+* Upload de fotos
+
+## Administrador
+
+* Dashboard
+* Agenda
+* Clientes
+* Veículos
+* Serviços
+* Relatórios simples
+
+---
+
+# 13. Ordem de Desenvolvimento
+
+
+* Criar projeto Flutter
+* Configurar Firebase
+* Criar autenticação
+* Criar banco Firestore
+* Criar telas base
+
+* Agendamento
+* Geração de OS
+* Geração QR Code
+* Tela de confirmação
+
+
+* Scanner QR Code
+* Check-in
+* Atualização de status
+* Histórico de status
+
+* Painel administrativo
+* Relatórios simples
+* Integração WhatsApp
+* Testes
+
+---
+
+ Versão Futura
+
+Após o MVP:
+
+* Pagamento online
+* Programa fidelidade
+* Cupom de desconto
+* App Android
+* App iOS
+* Multiunidades
+* Franquia Clean Car
+* Assinatura mensal de lavagem
+* Avaliações públicas
+* Controle de estoque
+* Comissão por funcionário

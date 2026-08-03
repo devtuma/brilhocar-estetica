@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clean Car - Sistema</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span>Clean</span> Car</div>
+    <nav>
+      <button onclick="showSection('home')">Início</button>
+      <button onclick="showSection('booking')">Agendar</button>
+      <button onclick="showSection('admin')">Painel</button>
+      <button onclick="showSection('checkin')">Check-in QR</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="home" class="section active hero">
+      <h1>Clean Car</h1>
+      <p>Sistema de atendimento, agendamento, QR Code, acompanhamento e WhatsApp para estética automotiva.</p>
+      <div class="cards">
+        <div class="card">Lavagem Técnica</div>
+        <div class="card">Polimento</div>
+        <div class="card">Vitrificação</div>
+        <div class="card">Higienização Interna</div>
+        <div class="card">Revitalização de Farol</div>
+      </div>
+      <button class="primary" onclick="showSection('booking')">Agendar serviço</button>
+    </section>
+
+    <section id="booking" class="section">
+      <h2>Novo Agendamento</h2>
+      <form id="bookingForm" class="form-grid">
+        <input id="name" placeholder="Nome do cliente" required />
+        <input id="phone" placeholder="WhatsApp com DDD" required />
+        <input id="car" placeholder="Modelo do veículo" required />
+        <input id="plate" placeholder="Placa" required />
+        <select id="service" required>
+          <option value="">Selecione o serviço</option>
+          <option>Lavagem Técnica</option>
+          <option>Polimento</option>
+          <option>Vitrificação</option>
+          <option>Higienização Interna</option>
+          <option>Revitalização de Farol</option>
+        </select>
+        <input id="date" type="date" required />
+        <input id="time" type="time" required />
+        <textarea id="notes" placeholder="Observações"></textarea>
+        <button class="primary" type="submit">Confirmar e gerar QR Code</button>
+      </form>
+
+      <div id="ticket" class="ticket hidden">
+        <h3>Agendamento Confirmado</h3>
+        <p id="ticketInfo"></p>
+        <div id="qrcode"></div>
+        <button id="whatsappBtn" class="whatsapp">Enviar confirmação pelo WhatsApp</button>
+      </div>
+    </section>
+
+    <section id="checkin" class="section">
+      <h2>Check-in por QR Code</h2>
+      <p>Escaneie o QR Code do cliente ou informe o código da OS.</p>
+      <div id="reader"></div>
+      <div class="manual-checkin">
+        <input id="manualOs" placeholder="Ex: CC-2026-000001" />
+        <button class="primary" onclick="manualCheckin()">Buscar OS</button>
+      </div>
+      <div id="checkinResult" class="result"></div>
+    </section>
+
+    <section id="admin" class="section">
+      <h2>Painel Administrativo</h2>
+      <div class="stats">
+        <div><strong id="totalBookings">0</strong><span>Agendamentos</span></div>
+        <div><strong id="inProgress">0</strong><span>Em andamento</span></div>
+        <div><strong id="done">0</strong><span>Entregues</span></div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>OS</th><th>Cliente</th><th>Veículo</th><th>Serviço</th><th>Data</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="bookingTable"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
