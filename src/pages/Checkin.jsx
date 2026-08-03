@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Camera, CheckCircle, Search, AlertCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function Checkin() {
   const [scanResult, setScanResult] = useState(null);
@@ -92,45 +92,58 @@ export default function Checkin() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-8 animate-fade-in-up">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-black mb-2 flex justify-center items-center gap-3">
-          <Camera className="text-primary" size={36}/> Scanner de Entrada
-        </h2>
-        <p className="text-gray-400">Escaneie o QR Code do cliente para dar entrada no veículo.</p>
-      </div>
+    <div className="max-w-6xl pt-8">
+      <h2 className="text-4xl font-bold mb-2">Check-in por QR Code</h2>
+      <p className="text-gray-400 mb-12">Escaneie o QR do cliente para dar entrada no veículo.</p>
 
       {!scanResult ? (
-        <div className="space-y-8">
-          <div className="bg-white rounded-3xl overflow-hidden shadow-[0_0_30px_rgba(255,255,255,0.05)] p-4">
-            <div id="reader" className="text-black"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          {/* Scanner column */}
+          <div className="border border-gray-800 bg-[#0b0b0f] rounded-xl p-8 flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden">
+            <div id="reader" className="w-full text-black bg-white rounded-lg z-10"></div>
+            {/* Fallback mock UI underneath just to match design while loading/idle */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="border-4 border-primary w-48 h-48 flex items-center justify-center opacity-30">
+                <span className="text-white font-bold opacity-100">Leitor QR Code</span>
+              </div>
+            </div>
           </div>
           
-          <form onSubmit={handleManualSearch} className="flex gap-4">
-            <input 
-              type="text" 
-              placeholder="Ex: CC-2026-1234" 
-              value={manualOs}
-              onChange={e=>setManualOs(e.target.value)}
-              className="flex-1 bg-surface border border-gray-800 rounded-xl px-4 py-3 focus:outline-none focus:border-primary"
-            />
-            <button type="submit" className="bg-gray-800 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-700 transition-colors">
-              <Search size={20}/> Buscar
-            </button>
-          </form>
-          {error && <div className="text-red-500 flex items-center gap-2 bg-red-500/10 p-4 rounded-xl border border-red-500/20"><AlertCircle/> {error}</div>}
+          {/* Search column */}
+          <div className="flex flex-col gap-6">
+            <form onSubmit={handleManualSearch} className="space-y-4">
+              <input 
+                type="text" 
+                placeholder="Ex: CC-2026-000001" 
+                value={manualOs}
+                onChange={e=>setManualOs(e.target.value)}
+                className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500"
+              />
+              <button type="submit" className="bg-primary text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#00c853] transition-colors inline-block">
+                Buscar OS
+              </button>
+            </form>
+            {error && <div className="text-red-500 flex items-center gap-2 bg-red-500/10 p-4 rounded-xl border border-red-500/20"><AlertCircle/> {error}</div>}
+
+            <div className="border border-gray-800 rounded-xl p-6 bg-[#0b0b0f] mt-auto">
+              <h3 className="text-xl font-bold mb-2">Dar entrada no veículo</h3>
+              <p className="text-sm font-semibold text-primary">Status: Aguardando OS</p>
+            </div>
+          </div>
+
         </div>
       ) : (
-        <div className="bg-surface border border-gray-800 rounded-3xl p-8 space-y-6">
+        <div className="border border-gray-800 rounded-xl p-8 bg-[#0b0b0f] space-y-6 max-w-2xl">
           <div className="flex justify-between items-start border-b border-gray-800 pb-6">
             <div>
               <h3 className="text-2xl font-black text-white">{scanResult.os}</h3>
               <p className="text-gray-400 mt-1">{scanResult.name}</p>
-              <p className="text-sm font-bold text-accent mt-2">{scanResult.car} • {scanResult.plate}</p>
+              <p className="text-sm font-bold text-gray-300 mt-2">{scanResult.car} • {scanResult.plate}</p>
             </div>
             <div className="bg-gray-900 px-4 py-2 rounded-lg border border-gray-800">
               <span className="block text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Status Atual</span>
-              <span className={`font-bold ${scanResult.status === 'Agendado' ? 'text-yellow-500' : 'text-green-500'}`}>
+              <span className={`font-bold ${scanResult.status === 'Agendado' ? 'text-yellow-500' : 'text-primary'}`}>
                 {scanResult.status}
               </span>
             </div>
@@ -146,7 +159,7 @@ export default function Checkin() {
               <button 
                 onClick={() => { updateStatus('Veículo Recebido'); handleWhatsapp('recebido'); }}
                 disabled={loading}
-                className="bg-green-500 text-black font-bold py-4 rounded-xl hover:bg-green-400 transition-colors flex justify-center items-center gap-2"
+                className="bg-primary text-black font-bold py-4 rounded-xl hover:bg-[#00c853] transition-colors flex justify-center items-center gap-2"
               >
                 <CheckCircle size={20}/> Confirmar Entrada do Veículo
               </button>
@@ -156,7 +169,7 @@ export default function Checkin() {
               <button 
                 onClick={() => { updateStatus('Serviço Iniciado'); handleWhatsapp('iniciado'); }}
                 disabled={loading}
-                className="bg-primary text-white font-bold py-4 rounded-xl hover:bg-red-600 transition-colors"
+                className="bg-yellow-500 text-black font-bold py-4 rounded-xl hover:bg-yellow-400 transition-colors"
               >
                 Iniciar Serviço
               </button>
@@ -164,7 +177,7 @@ export default function Checkin() {
 
             <button 
               onClick={() => setScanResult(null)}
-              className="bg-gray-800 text-white font-bold py-4 rounded-xl hover:bg-gray-700 transition-colors"
+              className="bg-transparent border border-gray-600 text-white font-bold py-3 rounded-xl hover:bg-gray-800 transition-colors"
             >
               Voltar / Escanear Outro
             </button>

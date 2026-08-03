@@ -13,11 +13,11 @@ function App() {
           <Link to="/" className="text-2xl font-black tracking-tight">
             <span className="text-primary">Brilho</span>Car
           </Link>
-          <nav className="hidden md:flex gap-2">
-            <Link to="/" className="hover:text-primary transition-colors font-bold px-4 py-2">Início</Link>
-            <Link to="/booking" className="hover:text-primary transition-colors font-bold px-4 py-2">Agendar</Link>
-            <Link to="/checkin" className="hover:text-primary transition-colors font-bold px-4 py-2">Check-in</Link>
-            <Link to="/admin" className="hover:text-primary transition-colors font-bold px-4 py-2">Painel</Link>
+          <nav className="hidden md:flex gap-3">
+            <Link to="/" className="border border-gray-800 bg-[#0b0b0f] hover:bg-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg">Início</Link>
+            <Link to="/booking" className="border border-gray-800 bg-[#0b0b0f] hover:bg-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg">Agendar</Link>
+            <Link to="/admin" className="border border-gray-800 bg-[#0b0b0f] hover:bg-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg">Painel</Link>
+            <Link to="/checkin" className="border border-gray-800 bg-[#0b0b0f] hover:bg-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg">Check-in QR</Link>
           </nav>
         </header>
 
