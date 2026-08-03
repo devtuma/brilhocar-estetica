@@ -9,7 +9,7 @@ export default {
       colors: {
         background: '#0b0b0f',
         surface: '#151515',
-        primary: '#e22',
+        primary: '#00e676',
         accent: '#D4AF37', // Gold for premium detailing
       }
     },

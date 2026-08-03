@@ -86,7 +86,7 @@ export default function Checkin() {
     if (!scanResult) return;
     const p = scanResult.phone.replace(/\D/g, '');
     let msg = '';
-    if (type === 'recebido') msg = `Olá ${scanResult.name}, seu veículo foi recebido pela equipe Clean Car. OS: ${scanResult.os}.`;
+    if (type === 'recebido') msg = `Olá ${scanResult.name}, seu veículo foi recebido pela equipe BrilhoCar. OS: ${scanResult.os}.`;
     if (type === 'iniciado') msg = `Olá ${scanResult.name}, o serviço ${scanResult.service} foi iniciado.`;
     window.open(`https://wa.me/55${p}?text=${msg}`, '_blank');
   };

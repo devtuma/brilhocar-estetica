@@ -52,7 +52,7 @@ export default function Booking() {
   const handleWhatsapp = () => {
     if (!successData) return;
     const phoneNum = successData.phone.replace(/\D/g, '');
-    const msg = `Olá ${successData.name}, seu agendamento na Clean Car foi confirmado!%0A%0A*OS:* ${successData.os}%0A*Serviço:* ${successData.service}%0A*Data:* ${successData.date} às ${successData.time}%0A%0AApresente o QR Code na entrada.`;
+    const msg = `Olá ${successData.name}, seu agendamento na BrilhoCar foi confirmado!%0A%0A*OS:* ${successData.os}%0A*Serviço:* ${successData.service}%0A*Data:* ${successData.date} às ${successData.time}%0A%0AApresente o QR Code na entrada.`;
     window.open(`https://wa.me/55${phoneNum}?text=${msg}`, '_blank');
   };
 

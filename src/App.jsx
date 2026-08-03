@@ -11,7 +11,7 @@ function App() {
         {/* Topbar */}
         <header className="sticky top-0 z-50 flex justify-between items-center px-6 py-4 bg-surface border-b border-gray-800 shadow-xl">
           <Link to="/" className="text-2xl font-black tracking-tight">
-            <span className="text-primary">Clean</span> Car
+            <span className="text-primary">Brilho</span>Car
           </Link>
           <nav className="hidden md:flex gap-2">
             <Link to="/" className="hover:text-primary transition-colors font-bold px-4 py-2">Início</Link>
