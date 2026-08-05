@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import QRCode from 'react-qr-code';
 import { CheckCircle } from 'lucide-react';
 
@@ -16,7 +16,7 @@ export default function Booking() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: '', phone: '', car: '', plate: '', service: initialService, date: '', time: ''
+    name: '', car: '', plate: '', service: initialService, date: '', time: '', obs: ''
   });
   
   const [loading, setLoading] = useState(false);
@@ -29,10 +29,14 @@ export default function Booking() {
     // Generate OS Number
     const year = new Date().getFullYear();
     const osNumber = `CC-${year}-${Math.floor(1000 + Math.random() * 9000)}`;
+    
+    const user = auth.currentUser;
 
     const appointment = {
       ...formData,
       os: osNumber,
+      userId: user ? user.uid : null,
+      phone: user ? user.phoneNumber : '',
       status: 'Agendado',
       createdAt: serverTimestamp(),
       timeline: [{ status: 'Agendado', date: new Date().toISOString() }]
@@ -82,13 +86,13 @@ export default function Booking() {
   return (
     <div className="max-w-4xl pt-4 md:pt-8 pb-10">
       <h2 className="text-3xl md:text-4xl font-bold mb-2">Novo Agendamento</h2>
-      <p className="text-sm md:text-base text-gray-400 mb-8 md:mb-12">Cadastro do cliente, veículo e serviço.</p>
+      <p className="text-sm md:text-base text-gray-400 mb-8 md:mb-12">Você está logado. Confirme os dados abaixo para agendar.</p>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
           <div className="space-y-4">
-            <input required type="text" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" placeholder="Nome do cliente" />
+            <input required type="text" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" placeholder="Seu Nome" />
             <input required type="text" value={formData.car} onChange={e=>setFormData({...formData, car: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" placeholder="Modelo do veículo" />
             <select required value={formData.service} onChange={e=>setFormData({...formData, service: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary">
               <option value="" disabled>Selecione o serviço</option>
@@ -98,10 +102,9 @@ export default function Booking() {
           </div>
 
           <div className="space-y-4">
-            <input required type="tel" value={formData.phone} onChange={e=>setFormData({...formData, phone: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" placeholder="WhatsApp com DDD" />
-            <input required type="text" value={formData.plate} onChange={e=>setFormData({...formData, plate: e.target.value.toUpperCase()})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary uppercase placeholder-gray-500" placeholder="Placa" />
+            <input required type="text" value={formData.plate} onChange={e=>setFormData({...formData, plate: e.target.value.toUpperCase()})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary uppercase placeholder-gray-500" placeholder="Placa do Carro" />
             <input required type="date" value={formData.date} onChange={e=>setFormData({...formData, date: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" placeholder="Data" />
-            <textarea className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500 h-[3.25rem] resize-none" placeholder="Observações"></textarea>
+            <textarea value={formData.obs} onChange={e=>setFormData({...formData, obs: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500 h-[8rem] resize-none" placeholder="Observações (opcional)"></textarea>
           </div>
           
         </div>

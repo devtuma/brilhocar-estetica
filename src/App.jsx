@@ -9,11 +9,18 @@ import Checkin from './pages/Checkin';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
 import Track from './pages/Track';
+import ClientLogin from './pages/ClientLogin';
 import ProtectedRoute from './components/ProtectedRoute';
+import ClientProtectedRoute from './components/ClientProtectedRoute';
 
 function ClientLayout({ children }) {
   const location = useLocation();
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    window.location.href = '/';
+  };
 
   return (
     <div className="min-h-screen bg-background text-white font-sans pb-20 md:pb-0">
@@ -21,10 +28,11 @@ function ClientLayout({ children }) {
         <Link to="/" className="text-xl md:text-2xl font-black tracking-tight">
           <span className="text-primary">Brilho</span>Car
         </Link>
-        <nav className="hidden md:flex gap-3">
+        <nav className="hidden md:flex gap-3 items-center">
           <Link to="/" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Início</Link>
           <Link to="/booking" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/booking') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Agendar</Link>
           <Link to="/track" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/track') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Acompanhar</Link>
+          <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition-colors ml-4" title="Sair"><LogOut size={18}/></button>
         </nav>
       </header>
 
@@ -101,9 +109,12 @@ function App() {
       <Routes>
         {/* Rotas Públicas */}
         <Route path="/" element={<ClientLayout><Home /></ClientLayout>} />
-        <Route path="/booking" element={<ClientLayout><Booking /></ClientLayout>} />
-        <Route path="/track" element={<ClientLayout><Track /></ClientLayout>} />
+        <Route path="/client-login" element={<ClientLayout><ClientLogin /></ClientLayout>} />
         <Route path="/login" element={<Login />} />
+
+        {/* Rotas Privadas (Clientes) */}
+        <Route path="/booking" element={<ClientProtectedRoute><ClientLayout><Booking /></ClientLayout></ClientProtectedRoute>} />
+        <Route path="/track" element={<ClientProtectedRoute><ClientLayout><Track /></ClientLayout></ClientProtectedRoute>} />
 
         {/* Rotas Privadas (Admin/Operador) */}
         <Route path="/admin" element={<ProtectedRoute><AdminLayout><Admin /></AdminLayout></ProtectedRoute>} />
