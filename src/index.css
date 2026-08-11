@@ -8,3 +8,38 @@
     color: #ffffff;
   }
 }
+
+@keyframes pulse-red-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.95),
+                0 0 20px rgba(239, 68, 68, 0.55),
+                0 0 40px rgba(239, 68, 68, 0.25);
+    border-color: rgb(239, 68, 68);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3),
+                0 0 30px rgba(239, 68, 68, 0.15),
+                0 0 50px rgba(239, 68, 68, 0.05);
+    border-color: rgb(220, 38, 38);
+  }
+}
+
+.animate-pulse-red {
+  animation: pulse-red-glow 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-red {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.8);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}

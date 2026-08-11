@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import QRCode from 'react-qr-code';
-import { CheckCircle, X, Plus } from 'lucide-react';
+import { CheckCircle, Plus, Car, AlertCircle } from 'lucide-react';
+import VehiclePicker from '../components/VehiclePicker';
 
 const servicesList = [
   { id: 'lavagem-tecnica', name: 'Lavagem Técnica', price: 80 },
@@ -24,11 +25,12 @@ export default function Booking() {
   });
 
   const [selectedServices, setSelectedServices] = useState([]);
+  const [selectedCar, setSelectedCar] = useState(null);
+  const [showVehiclePicker, setShowVehiclePicker] = useState(false);
+  const [carroError, setCarroError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [successData, setSuccessData] = useState(null);
-  const [showQrModal, setShowQrModal] = useState(false);
 
-  // Pre-selecionar serviço vindo da Home
   useEffect(() => {
     if (initialService) {
       const found = servicesList.find(s => s.name === initialService);
@@ -37,6 +39,35 @@ export default function Booking() {
       }
     }
   }, [initialService]);
+
+  // Auto-fill de nome via Firebase Auth + perfil no Firestore
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          setFormData(prev => ({
+            ...prev,
+            name: data.name || prev.name,
+          }));
+        } else {
+          // Sem perfil salvo ainda — usar displayName se houver
+          if (user.displayName) {
+            setFormData(prev => ({ ...prev, name: user.displayName }));
+          }
+        }
+      } catch (err) {
+        console.warn('Não foi possível carregar perfil:', err);
+      }
+    };
+
+    loadUserProfile();
+  }, []);
 
   const toggleService = (service) => {
     setSelectedServices(prev => {
@@ -50,7 +81,14 @@ export default function Booking() {
   };
 
   const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
-  const totalDuration = selectedServices.length * 60; // minutos
+  const totalDuration = selectedServices.length * 60;
+
+  const handleSelectCar = (car) => {
+    setSelectedCar(car);
+    setFormData(prev => ({ ...prev, car: car.modelo, plate: car.placa }));
+    setCarroError(false);
+    setShowVehiclePicker(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,16 +98,23 @@ export default function Booking() {
       return;
     }
 
+    if (!selectedCar) {
+      setCarroError(true);
+      setShowVehiclePicker(true);
+      return;
+    }
+
     setLoading(true);
 
-    // Generate OS Number
+    const user = auth.currentUser;
     const year = new Date().getFullYear();
     const osNumber = `BC-${year}-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    const user = auth.currentUser;
-
     const appointment = {
       ...formData,
+      car: selectedCar.modelo,
+      plate: selectedCar.placa,
+      carId: selectedCar.id,
       services: selectedServices.map(s => ({ id: s.id, name: s.name, price: s.price })),
       serviceNames: selectedServices.map(s => s.name).join(' + '),
       totalPrice,
@@ -84,6 +129,20 @@ export default function Booking() {
 
     try {
       const docRef = await addDoc(collection(db, 'appointments'), appointment);
+
+      // Atualiza lastAccess do user
+      if (user) {
+        try {
+          await setDoc(doc(db, 'users', user.uid), {
+            name: formData.name,
+            phone: user.phoneNumber || '',
+            lastAccess: serverTimestamp(),
+          }, { merge: true });
+        } catch (e) {
+          console.warn('Não foi possível atualizar perfil:', e);
+        }
+      }
+
       setSuccessData({ id: docRef.id, ...appointment });
     } catch (err) {
       console.error(err);
@@ -96,9 +155,9 @@ export default function Booking() {
   const handleWhatsapp = () => {
     if (!successData) return;
     const phoneNum = (successData.phone || '').replace(/\D/g, '');
-    const servicesText = successData.services.map(s => `• ${s.name} - R$ ${s.price.toFixed(2)}`).join('%0A');
+    const servicesText = (successData.services || []).map(s => `• ${s.name} - R$ ${s.price.toFixed(2)}`).join('%0A');
     const msg = `Olá ${successData.name}, seu agendamento na BrilhoCar foi confirmado!%0A%0A*OS:* ${successData.os}%0A*Serviços:*%0A${servicesText}%0A*Total:* R$ ${successData.totalPrice.toFixed(2)}%0A*Data:* ${successData.date} às ${successData.time}%0A%0AApresente o QR Code na entrada.`;
-    const targetPhone = phoneNum || '11999999999'; // fallback se não tiver telefone
+    const targetPhone = phoneNum || '11999999999';
     window.open(`https://wa.me/55${targetPhone}?text=${msg}`, '_blank');
   };
 
@@ -181,24 +240,56 @@ export default function Booking() {
                 <span className="text-2xl font-black text-primary">R$ {totalPrice.toFixed(2)}</span>
               </div>
               <p className="text-xs text-gray-400 mt-1">
-                Duração estimada: ~{totalDuration} minutos ({Math.ceil(totalDuration / 60)}h{totalDuration % 60 > 0 ? `${totalDuration % 60}min` : ''})
+                Duração estimada: ~{totalDuration} minutos ({Math.floor(totalDuration / 60)}h{totalDuration % 60 > 0 ? `${totalDuration % 60}min` : ''})
               </p>
             </div>
           )}
         </div>
 
+        {/* Dados pessoais */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-4">
             <input required type="text" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" placeholder="Seu Nome" />
-            <input required type="text" value={formData.car} onChange={e=>setFormData({...formData, car: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" placeholder="Modelo do veículo (ex: HB20)" />
+          </div>
+
+          <div className="space-y-4">
+            {/* Combo de Carro */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowVehiclePicker(true)}
+                className={`w-full text-left bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-between transition-all ${
+                  carroError ? 'animate-pulse-red' : ''
+                }`}
+              >
+                <span className={selectedCar ? 'text-black' : 'text-gray-500'}>
+                  {selectedCar ? `${selectedCar.modelo} - ${selectedCar.placa}` : 'Selecione o carro'}
+                </span>
+                <Car size={18} className="text-gray-500" />
+              </button>
+              {carroError && (
+                <p className="text-red-500 text-xs mt-1 flex items-center gap-1 font-semibold">
+                  <AlertCircle size={12} /> Selecione um carro para continuar
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <input required type="text" value={formData.car} onChange={e=>setFormData({...formData, car: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" placeholder="Modelo do veículo" />
             <input required type="time" value={formData.time} onChange={e=>setFormData({...formData, time: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" />
           </div>
 
           <div className="space-y-4">
             <input required type="text" value={formData.plate} onChange={e=>setFormData({...formData, plate: e.target.value.toUpperCase()})} maxLength={8} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary uppercase placeholder-gray-500" placeholder="Placa do Carro (ex: ABC1D23)" />
             <input required type="date" value={formData.date} onChange={e=>setFormData({...formData, date: e.target.value})} min={new Date().toISOString().split('T')[0]} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" />
-            <textarea value={formData.obs} onChange={e=>setFormData({...formData, obs: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500 h-[8rem] resize-none" placeholder="Observações (opcional)"></textarea>
           </div>
+        </div>
+
+        <div className="space-y-4">
+          <textarea value={formData.obs} onChange={e=>setFormData({...formData, obs: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500 h-[8rem] resize-none" placeholder="Observações (opcional)"></textarea>
         </div>
 
         <div className="mt-8">
@@ -207,10 +298,17 @@ export default function Booking() {
             type="submit"
             className="bg-primary text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#00c853] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Processando...' : `Confirmar ${selectedServices.length > 0 ? `(${selectedServices.length})` : ''} e gerar QR Code`}
+            {loading ? 'Processando...' : 'Confirmar e gerar QR Code'}
           </button>
         </div>
       </form>
+
+      <VehiclePicker
+        isOpen={showVehiclePicker}
+        onClose={() => setShowVehiclePicker(false)}
+        onSelect={handleSelectCar}
+        selectedCarId={selectedCar?.id}
+      />
     </div>
   );
 }
