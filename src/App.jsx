@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home as HomeIcon, CalendarPlus, LayoutDashboard, QrCode, Search, LogOut } from 'lucide-react';
-import { signOut } from 'firebase/auth';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 
 import Home from './pages/Home';
@@ -15,7 +16,13 @@ import ClientProtectedRoute from './components/ClientProtectedRoute';
 
 function ClientLayout({ children }) {
   const location = useLocation();
+  const [user, setUser] = useState(null);
   const isActive = (path) => location.pathname === path;
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsub();
+  }, []);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -23,7 +30,7 @@ function ClientLayout({ children }) {
   };
 
   return (
-    <div className="min-h-screen bg-background text-white font-sans pb-20 md:pb-0">
+    <div className="min-h-screen bg-background text-white font-sans pb-24 md:pb-0">
       <header className="sticky top-0 z-50 flex justify-between items-center px-4 md:px-6 py-4 bg-surface border-b border-gray-800 shadow-xl">
         <Link to="/" className="text-xl md:text-2xl font-black tracking-tight">
           <span className="text-primary">Brilho</span>Car
@@ -32,7 +39,12 @@ function ClientLayout({ children }) {
           <Link to="/" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Início</Link>
           <Link to="/booking" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/booking') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Agendar</Link>
           <Link to="/track" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/track') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Acompanhar</Link>
-          <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition-colors ml-4" title="Sair"><LogOut size={18}/></button>
+          {user && (
+            <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition-colors ml-4 flex items-center gap-2 text-sm font-semibold" title="Sair">
+              <LogOut size={18}/>
+              <span className="hidden lg:inline">Sair</span>
+            </button>
+          )}
         </nav>
       </header>
 
@@ -53,6 +65,12 @@ function ClientLayout({ children }) {
           <Search size={20} />
           <span className="text-[10px] font-bold">Acompanhar</span>
         </Link>
+        {user && (
+          <button onClick={handleLogout} className="flex flex-col items-center gap-1 text-gray-400 hover:text-red-500">
+            <LogOut size={20} />
+            <span className="text-[10px] font-bold">Sair</span>
+          </button>
+        )}
       </nav>
     </div>
   );
@@ -61,7 +79,13 @@ function ClientLayout({ children }) {
 function AdminLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
   const isActive = (path) => location.pathname === path;
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsub();
+  }, []);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -77,7 +101,12 @@ function AdminLayout({ children }) {
         <nav className="hidden md:flex gap-3 items-center">
           <Link to="/admin" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/admin') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Painel</Link>
           <Link to="/checkin" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/checkin') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Scanner QR</Link>
-          <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition-colors ml-4"><LogOut size={20}/></button>
+          {user && (
+            <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition-colors ml-4 flex items-center gap-2 text-sm font-semibold">
+              <LogOut size={20}/>
+              <span className="hidden lg:inline">Sair</span>
+            </button>
+          )}
         </nav>
       </header>
 
@@ -94,10 +123,12 @@ function AdminLayout({ children }) {
           <QrCode size={20} />
           <span className="text-[10px] font-bold">Scanner</span>
         </Link>
-        <button onClick={handleLogout} className="flex flex-col items-center gap-1 text-gray-400 hover:text-red-500">
-          <LogOut size={20} />
-          <span className="text-[10px] font-bold">Sair</span>
-        </button>
+        {user && (
+          <button onClick={handleLogout} className="flex flex-col items-center gap-1 text-gray-400 hover:text-red-500">
+            <LogOut size={20} />
+            <span className="text-[10px] font-bold">Sair</span>
+          </button>
+        )}
       </nav>
     </div>
   );
