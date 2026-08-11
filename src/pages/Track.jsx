@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { Search, Car, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, Car, AlertCircle, Loader2, QrCode, X, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import QRCode from 'react-qr-code';
 
 export default function Track() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [appointments, setAppointments] = useState([]);
+  const [qrModal, setQrModal] = useState(null); // {os, id} quando aberto
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -23,12 +25,16 @@ export default function Track() {
           collection(db, 'appointments'),
           where('userId', '==', user.uid)
         );
-        
+
         const querySnapshot = await getDocs(q);
         const docs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         // Ordena no frontend caso haja problema com índice composto
-        docs.sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
-        
+        docs.sort((a, b) => {
+          const aTime = a.createdAt?.toMillis?.() ?? a.createdAt?.seconds * 1000 ?? 0;
+          const bTime = b.createdAt?.toMillis?.() ?? b.createdAt?.seconds * 1000 ?? 0;
+          return bTime - aTime;
+        });
+
         setAppointments(docs);
       } catch (err) {
         console.error(err);
@@ -50,6 +56,38 @@ export default function Track() {
       case 'Entregue': return 5;
       default: return 1;
     }
+  };
+
+  const getServicesText = (appointment) => {
+    if (appointment.services && Array.isArray(appointment.services)) {
+      return appointment.services.map(s => s.name).join(' + ');
+    }
+    return appointment.service || appointment.serviceNames || '—';
+  };
+
+  const getTotalPrice = (appointment) => {
+    if (typeof appointment.totalPrice === 'number') return appointment.totalPrice;
+    if (appointment.services && Array.isArray(appointment.services)) {
+      return appointment.services.reduce((sum, s) => sum + (s.price || 0), 0);
+    }
+    return null;
+  };
+
+  const openQrModal = (appointment) => {
+    setQrModal({ os: appointment.os, id: appointment.id, appointment });
+  };
+
+  const closeQrModal = () => setQrModal(null);
+
+  const shareQrWhatsapp = () => {
+    if (!qrModal) return;
+    const { appointment } = qrModal;
+    const phoneNum = (appointment.phone || '').replace(/\D/g, '');
+    const servicesText = (appointment.services || []).map(s => `• ${s.name}`).join('%0A') || getServicesText(appointment);
+    const totalText = getTotalPrice(appointment) ? `%0A*Total:* R$ ${getTotalPrice(appointment).toFixed(2)}` : '';
+    const msg = `Olá ${appointment.name}, segue o QR Code do seu agendamento na BrilhoCar!%0A%0A*OS:* ${appointment.os}%0A*Serviços:*%0A${servicesText}${totalText}%0A*Data:* ${appointment.date} às ${appointment.time}%0A%0AApresente o QR Code na entrada.`;
+    const targetPhone = phoneNum || '11999999999';
+    window.open(`https://wa.me/55${targetPhone}?text=${msg}`, '_blank');
   };
 
   return (
@@ -83,7 +121,9 @@ export default function Track() {
         <div className="space-y-12">
           {appointments.map(appointment => {
             const currentStep = getStatusStep(appointment.status);
-            
+            const servicesText = getServicesText(appointment);
+            const totalPrice = getTotalPrice(appointment);
+
             return (
               <div key={appointment.id} className="bg-surface border border-gray-800 rounded-3xl p-6 md:p-8 animate-fade-in-up">
                 <div className="flex flex-col md:flex-row justify-between md:items-center border-b border-gray-800 pb-6 mb-8 gap-4">
@@ -93,22 +133,35 @@ export default function Track() {
                     <p className="text-primary font-bold mt-1 text-lg">{appointment.plate}</p>
                   </div>
                   <div className="text-left md:text-right">
-                    <p className="text-gray-400 text-sm">Serviço Contratado</p>
-                    <p className="font-semibold text-lg">{appointment.service}</p>
+                    <p className="text-gray-400 text-sm">Serviço(s) Contratado(s)</p>
+                    <p className="font-semibold text-lg">{servicesText}</p>
+                    {totalPrice !== null && (
+                      <p className="text-primary font-bold mt-1">R$ {totalPrice.toFixed(2)}</p>
+                    )}
                     <p className="text-xs text-gray-500 mt-2">Agendado para: {appointment.date} às {appointment.time}</p>
                   </div>
+                </div>
+
+                {/* Botões de ação */}
+                <div className="flex flex-wrap gap-3 mb-6">
+                  <button
+                    onClick={() => openQrModal(appointment)}
+                    className="bg-primary/10 border border-primary/30 text-primary font-bold px-4 py-2 rounded-xl hover:bg-primary/20 transition-colors flex items-center gap-2"
+                  >
+                    <QrCode size={18} /> Mostrar QR Code
+                  </button>
                 </div>
 
                 {/* Timeline */}
                 <div className="relative pt-4 pb-8">
                   <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-800 md:left-1/2 md:-ml-px"></div>
-                  
+
                   <div className="space-y-8 relative">
                     {['Agendado', 'Veículo Recebido', 'Serviço Iniciado', 'Finalizado', 'Entregue'].map((stepStatus, index) => {
                       const stepNum = index + 1;
                       const isCompleted = currentStep >= stepNum;
                       const isCurrent = currentStep === stepNum;
-                      
+
                       return (
                         <div key={stepStatus} className={`flex items-center md:justify-between ${index % 2 === 0 ? 'md:flex-row-reverse' : ''}`}>
                           <div className="hidden md:block w-5/12"></div>
@@ -127,6 +180,61 @@ export default function Track() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal do QR Code */}
+      {qrModal && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+          onClick={closeQrModal}
+        >
+          <div
+            className="relative bg-surface border border-gray-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeQrModal}
+              className="absolute top-3 right-3 text-gray-400 hover:text-white bg-gray-900 hover:bg-gray-800 rounded-full p-2 transition-colors"
+              aria-label="Fechar"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 rounded-2xl mb-3">
+                <QrCode className="text-primary" size={24} />
+              </div>
+              <h3 className="text-xl font-black text-white mb-1">Seu QR Code</h3>
+              <p className="text-sm text-gray-400 mb-6">Apresente na recepção da BrilhoCar</p>
+
+              <div className="bg-white p-4 rounded-2xl inline-block mb-4">
+                <QRCode value={JSON.stringify({ os: qrModal.os, id: qrModal.id })} size={220} />
+              </div>
+
+              <p className="text-sm text-gray-300 mb-1">
+                OS: <strong className="text-white">{qrModal.os}</strong>
+              </p>
+              <p className="text-xs text-gray-500 mb-6">
+                {qrModal.appointment.car} · {qrModal.appointment.plate}
+              </p>
+
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={shareQrWhatsapp}
+                  className="w-full bg-[#25D366] text-black font-bold py-3 rounded-xl hover:bg-[#20b858] transition-colors flex items-center justify-center gap-2"
+                >
+                  <MessageCircle size={18} /> Enviar para WhatsApp
+                </button>
+                <button
+                  onClick={closeQrModal}
+                  className="w-full bg-transparent border border-gray-700 text-white font-semibold py-3 rounded-xl hover:bg-gray-800 transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
