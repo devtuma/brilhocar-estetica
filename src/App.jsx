@@ -45,7 +45,13 @@ function ClientLayout({ children }) {
           <Link to="/booking" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/booking') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Agendar</Link>
           <Link to="/track" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/track') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Acompanhar</Link>
           {user && (
-            <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition-colors ml-4 flex items-center gap-2 text-sm font-semibold" title="Sair">
+            <div className="ml-4 flex items-center gap-3 px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              <span className="text-xs font-bold text-green-400 hidden lg:inline">Logado</span>
+            </div>
+          )}
+          {user && (
+            <button onClick={handleLogout} className="text-white bg-red-500/20 hover:bg-red-500 border border-red-500/50 hover:border-red-500 transition-all ml-2 flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-lg" title="Sair">
               <LogOut size={18}/>
               <span className="hidden lg:inline">Sair</span>
             </button>
@@ -71,7 +77,13 @@ function ClientLayout({ children }) {
           <span className="text-[10px] font-bold">Acompanhar</span>
         </Link>
         {user && (
-          <button onClick={handleLogout} className="flex flex-col items-center gap-1 text-gray-400 hover:text-red-500">
+          <div className="flex flex-col items-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            <span className="text-[9px] font-bold text-green-400">ON</span>
+          </div>
+        )}
+        {user && (
+          <button onClick={handleLogout} className="flex flex-col items-center gap-1 text-red-400 hover:text-red-500">
             <LogOut size={20} />
             <span className="text-[10px] font-bold">Sair</span>
           </button>

@@ -5,8 +5,8 @@ import { auth, db, celularToEmail } from '../firebase';
 import { useNavigate, Link } from 'react-router-dom';
 import { Phone, User, Lock, Loader2, ArrowRight, ShieldCheck, Check, X } from 'lucide-react';
 
-// Regex de validação de senha forte
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{6}$/;
+// Regex de validação de senha forte (6-12 chars)
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{6,12}$/;
 
 const formatPhone = (value) => {
   const cleaned = value.replace(/\D/g, '');
@@ -20,7 +20,8 @@ const getPasswordStrength = (password) => {
   if (!password) return { score: 0, color: 'bg-gray-600', label: '' };
 
   let score = 0;
-  if (password.length >= 6) score++;
+  if (password.length >= 6 && password.length <= 12) score++;
+  if (password.length >= 8) score++;
   if (/[a-z]/.test(password)) score++;
   if (/[A-Z]/.test(password)) score++;
   if (/\d/.test(password)) score++;
@@ -30,11 +31,12 @@ const getPasswordStrength = (password) => {
     { color: 'bg-red-500', label: 'Muito fraca' },
     { color: 'bg-red-500', label: 'Fraca' },
     { color: 'bg-yellow-500', label: 'Regular' },
+    { color: 'bg-yellow-500', label: 'Boa' },
     { color: 'bg-green-500', label: 'Forte' },
     { color: 'bg-green-600', label: 'Muito forte' },
   ];
 
-  return { score, ...levels[score - 1] || levels[0] };
+  return { score, ...levels[Math.min(score, levels.length - 1)] || levels[0] };
 };
 
 const getErrorMessage = (code) => {
@@ -84,7 +86,7 @@ export default function Signup() {
     }
 
     if (!PASSWORD_REGEX.test(formData.password)) {
-      setError('A senha deve ter 6 caracteres, incluindo: 1 maiúscula, 1 minúscula, 1 número e 1 especial (!@#$%^&*).');
+      setError('A senha deve ter entre 6 e 12 caracteres, incluindo: 1 maiúscula, 1 minúscula, 1 número e 1 especial (!@#$%^&*).');
       return false;
     }
 
@@ -250,8 +252,9 @@ export default function Signup() {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="flex-1 bg-transparent px-4 py-4 text-white font-bold focus:outline-none"
-                placeholder="6 caracteres"
-                maxLength={6}
+                placeholder="6 a 12 caracteres"
+                minLength={6}
+                maxLength={12}
               />
             </div>
             {/* Indicador de força da senha */}
@@ -303,7 +306,8 @@ export default function Signup() {
                 onChange={(e) => setFormData({ ...formData, passwordConfirm: e.target.value })}
                 className="flex-1 bg-transparent px-4 py-4 text-white font-bold focus:outline-none"
                 placeholder="Repita a senha"
-                maxLength={6}
+                minLength={6}
+                maxLength={12}
               />
             </div>
             {formData.passwordConfirm && formData.password !== formData.passwordConfirm && (
@@ -311,7 +315,7 @@ export default function Signup() {
                 <X size={12} /> Senhas não coincidem
               </p>
             )}
-            {formData.passwordConfirm && formData.password === formData.passwordConfirm && formData.password.length >= 6 && (
+            {formData.passwordConfirm && formData.password === formData.passwordConfirm && formData.password.length >= 6 && formData.password.length <= 12 && (
               <p className="text-green-500 text-xs mt-1 flex items-center gap-1">
                 <Check size={12} /> Senhas coincidem
               </p>

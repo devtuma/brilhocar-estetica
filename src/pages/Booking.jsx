@@ -7,12 +7,12 @@ import VehiclePicker from '../components/VehiclePicker';
 import TimeSlotPicker from '../components/TimeSlotPicker';
 
 const servicesList = [
-  { id: 'lavagem-tecnica', name: 'Lavagem Técnica', price: 80 },
-  { id: 'lavagem-detalhada', name: 'Lavagem Detalhada', price: 150 },
-  { id: 'polimento-tecnico', name: 'Polimento Técnico', price: 350 },
-  { id: 'vitrificacao', name: 'Vitrificação', price: 800 },
-  { id: 'higienizacao-interna', name: 'Higienização Interna', price: 250 },
-  { id: 'tratamento-vidros', name: 'Tratamento de Vidros', price: 120 },
+  { id: 'lavagem-tecnica', name: 'Lavagem Técnica', price: 1 },
+  { id: 'lavagem-detalhada', name: 'Lavagem Detalhada', price: 1 },
+  { id: 'polimento-tecnico', name: 'Polimento Técnico', price: 1 },
+  { id: 'vitrificacao', name: 'Vitrificação', price: 1 },
+  { id: 'higienizacao-interna', name: 'Higienização Interna', price: 1 },
+  { id: 'tratamento-vidros', name: 'Tratamento de Vidros', price: 1 },
 ];
 
 export default function Booking() {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Copy, CheckCircle, Clock, AlertCircle, QrCode, X } from 'lucide-react';
+import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 
 export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
@@ -16,7 +17,7 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
     setError(null);
 
     try {
-      const createPixPayment = functions.httpsCallable('createPixPaymentForAppointment');
+      const createPixPayment = httpsCallable(functions, 'createPixPaymentForAppointment');
       const result = await createPixPayment({ appointmentId });
 
       if (result.data.success) {
@@ -43,7 +44,7 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
     if (!paymentData?.paymentId) return;
 
     try {
-      const checkStatusFn = functions.httpsCallable('checkPixPaymentStatus');
+      const checkStatusFn = httpsCallable(functions, 'checkPixPaymentStatus');
       const result = await checkStatusFn({ paymentId: paymentData.paymentId });
 
       if (result.data.status === 'paid') {

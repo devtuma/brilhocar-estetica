@@ -28,14 +28,25 @@ export default function Track() {
 
         const querySnapshot = await getDocs(q);
         const docs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        // Filtrar: mostrar apenas agendamentos pagos (pixStatus === 'paid') ou sem pixStatus (legado)
+        const paidDocs = docs.filter(d => {
+          // Se não tem pixStatus (legado), mostrar
+          if (!d.pixStatus) return true;
+          // Se está pago, mostrar
+          if (d.pixStatus === 'paid') return true;
+          // Caso contrário, esconder
+          return false;
+        });
+
         // Ordena no frontend caso haja problema com índice composto
-        docs.sort((a, b) => {
+        paidDocs.sort((a, b) => {
           const aTime = a.createdAt?.toMillis?.() ?? a.createdAt?.seconds * 1000 ?? 0;
           const bTime = b.createdAt?.toMillis?.() ?? b.createdAt?.seconds * 1000 ?? 0;
           return bTime - aTime;
         });
 
-        setAppointments(docs);
+        setAppointments(paidDocs);
       } catch (err) {
         console.error(err);
         setError('Erro ao buscar seus veículos. Tente novamente.');
@@ -94,7 +105,7 @@ export default function Track() {
     <div className="max-w-4xl pt-4 md:pt-8 pb-10">
       <h2 className="text-3xl md:text-4xl font-bold mb-2">Meus Veículos</h2>
       <p className="text-sm md:text-base text-gray-400 mb-8 md:mb-12">
-        Acompanhe o status em tempo real dos serviços agendados no seu celular.
+        Acompanhe o status em tempo real dos serviços agendados.
       </p>
 
       {error && (
