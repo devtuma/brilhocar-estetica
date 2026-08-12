@@ -2,6 +2,8 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
+import { getFunctions } from "firebase/functions";
+import { GoogleAuthProvider } from "firebase/auth";
 
 // Configurações puxando do arquivo .env
 const firebaseConfig = {
@@ -17,5 +19,17 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
+const functions = getFunctions(app);
 
-export { app, db, auth, storage };
+// Google Auth Provider
+const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
+
+export { app, db, auth, storage, functions, googleProvider };
+
+// Helper: converter celular para email do Firebase Auth
+export const celularToEmail = (celular) => {
+  const cleaned = celular.replace(/\D/g, '');
+  return `+55${cleaned}@brilhocar.com`;
+};

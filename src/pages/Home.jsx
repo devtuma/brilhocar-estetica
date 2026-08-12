@@ -1,40 +1,56 @@
 import { Link } from 'react-router-dom';
 import { Sparkles, Shield, Clock, Star, ArrowRight, Droplets, CarFront, CheckCircle2 } from 'lucide-react';
+import { useTexts } from '../hooks/useConfig';
+import PromotionBanner from '../components/PromotionBanner';
 
 export default function Home() {
+  const { texts, loading } = useTexts();
+
+  // Fallback para textos hardcoded
+  const hero = texts?.homeHero || {
+    title: 'Devolva o Brilho Original ao seu Veículo.',
+    subtitle: 'Tratamento vip para o seu carro com produtos de alta performance.',
+    ctaText: 'Agendar Meu Horário'
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
-      
+
+      {/* Banner de Promoção */}
+      <PromotionBanner />
+
       {/* HERO SECTION */}
       <section className="relative pt-12 pb-16 md:pt-24 md:pb-24 overflow-hidden">
         {/* Abstract background effects */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 blur-[100px] rounded-full pointer-events-none"></div>
-        
+
         <div className="relative z-10 text-center max-w-4xl mx-auto px-4">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-gray-800 text-accent text-xs md:text-sm font-bold mb-8 shadow-lg">
             <Star size={16} fill="currentColor" className="pb-0.5" />
             <span className="tracking-wide uppercase">Estética Automotiva Premium em Mauá</span>
           </div>
-          
+
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-black mb-6 tracking-tight leading-tight">
-            Devolva o <span className="text-primary">Brilho Original</span> ao seu Veículo.
+            {loading ? 'Carregando...' : hero.title.split(' ').slice(0, 3).join(' ')}{' '}
+            <span className="text-primary">
+              {loading ? '' : hero.title.split(' ').slice(3).join(' ') || 'ao seu Veículo.'}
+            </span>
           </h1>
-          
+
           <p className="text-base md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto font-medium">
-            Tratamento vip para o seu carro com produtos de alta performance. 
-            Do polimento à vitrificação, cuidamos de cada detalhe para um resultado impecável.
+            {loading ? 'Carregando...' : (hero.subtitle || 'Tratamento vip para o seu carro com produtos de alta performance.')}
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link to="/booking" className="group flex items-center justify-center gap-2 bg-primary hover:bg-[#00c853] text-black font-bold text-lg px-8 py-4 rounded-2xl transition-all duration-300 w-full sm:w-auto shadow-[0_0_30px_rgba(0,230,118,0.3)] hover:shadow-[0_0_40px_rgba(0,230,118,0.5)] hover:-translate-y-1">
-              Agendar Meu Horário
+              {loading ? 'Carregando...' : hero.ctaText || 'Agendar Agora'}
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </Link>
             <a href="https://wa.me/5511999999999" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 bg-surface hover:bg-gray-800 border border-gray-700 text-white font-bold text-lg px-8 py-4 rounded-2xl transition-all duration-300 w-full sm:w-auto hover:-translate-y-1">
               Falar no WhatsApp
             </a>
           </div>
-          
+
           <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm font-semibold text-gray-400">
             <div className="flex items-center gap-2"><CheckCircle2 size={18} className="text-primary"/> Produtos Premium</div>
             <div className="flex items-center gap-2"><CheckCircle2 size={18} className="text-primary"/> Acompanhamento Online</div>

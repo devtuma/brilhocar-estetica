@@ -8,9 +8,13 @@ import Home from './pages/Home';
 import Booking from './pages/Booking';
 import Checkin from './pages/Checkin';
 import Admin from './pages/Admin';
+import AdminSiteTexts from './pages/admin/SiteTexts';
+import AdminPromotions from './pages/admin/Promotions';
 import Login from './pages/Login';
 import Track from './pages/Track';
 import ClientLogin from './pages/ClientLogin';
+import Signup from './pages/Signup';
+import PagamentoPix from './pages/PagamentoPix';
 import ProtectedRoute from './components/ProtectedRoute';
 import ClientProtectedRoute from './components/ClientProtectedRoute';
 
@@ -141,14 +145,18 @@ function App() {
         {/* Rotas Públicas */}
         <Route path="/" element={<ClientLayout><Home /></ClientLayout>} />
         <Route path="/client-login" element={<ClientLayout><ClientLogin /></ClientLayout>} />
+        <Route path="/signup" element={<ClientLayout><Signup /></ClientLayout>} />
         <Route path="/login" element={<Login />} />
 
         {/* Rotas Privadas (Clientes) */}
         <Route path="/booking" element={<ClientProtectedRoute><ClientLayout><Booking /></ClientLayout></ClientProtectedRoute>} />
+        <Route path="/pagamento/:id" element={<ClientProtectedRoute><ClientLayout><PagamentoPix /></ClientLayout></ClientProtectedRoute>} />
         <Route path="/track" element={<ClientProtectedRoute><ClientLayout><Track /></ClientLayout></ClientProtectedRoute>} />
 
         {/* Rotas Privadas (Admin/Operador) */}
         <Route path="/admin" element={<ProtectedRoute><AdminLayout><Admin /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/textos" element={<ProtectedRoute><AdminLayout><AdminSiteTexts /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/promocoes" element={<ProtectedRoute><AdminLayout><AdminPromotions /></AdminLayout></ProtectedRoute>} />
         <Route path="/checkin" element={<ProtectedRoute><AdminLayout><Checkin /></AdminLayout></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>

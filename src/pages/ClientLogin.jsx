@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
-import { auth } from '../firebase';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Phone, Lock, Loader2, ArrowRight, ShieldCheck, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, celularToEmail } from '../firebase';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Phone, Mail, Lock, Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
+import GoogleButton from '../components/GoogleButton';
 
 const formatPhone = (value) => {
   const cleaned = value.replace(/\D/g, '');
@@ -14,143 +15,89 @@ const formatPhone = (value) => {
 
 const getErrorMessage = (code) => {
   const errors = {
-    'auth/invalid-phone-number': 'Número de telefone inválido. Verifique o DDD e o número.',
-    'auth/missing-phone-number': 'Digite um número de telefone.',
-    'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
-    'auth/captcha-check-failed': 'Verificação de segurança falhou. Recarregue a página.',
-    'auth/quota-exceeded': 'Cota de SMS excedida. Tente novamente mais tarde.',
+    'auth/invalid-credential': 'Email ou senha incorretos.',
+    'auth/user-not-found': 'Usuário não encontrado. Cadastre-se primeiro.',
+    'auth/wrong-password': 'Senha incorreta.',
+    'auth/invalid-email': 'Email inválido.',
+    'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos.',
     'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.',
     'auth/internal-error': 'Erro no servidor. Tente novamente.',
   };
-  return errors[code] || 'Erro ao enviar SMS. Tente novamente.';
+  return errors[code] || 'Erro ao fazer login. Tente novamente.';
 };
 
 export default function ClientLogin() {
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [confirmationResult, setConfirmationResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [resendTimer, setResendTimer] = useState(0);
-  const [step, setStep] = useState(1);
-
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get('returnTo') || '/';
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      try {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          'size': 'invisible',
-          'callback': () => {},
-          'expired-callback': () => {
-            setError('Verificação expirou. Tente novamente.');
-          }
-        });
-      } catch (err) {
-        console.warn('Falha ao criar reCAPTCHA:', err);
-      }
-    }
+  const [loginType, setLoginType] = useState('celular'); // 'celular' | 'email'
+  const [celular, setCelular] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [googleError, setGoogleError] = useState('');
 
-    return () => {
-      if (window.recaptchaVerifier && step === 1) {
-        try { window.recaptchaVerifier.clear(); } catch (e) {}
-        window.recaptchaVerifier = null;
-      }
-    };
-  }, [step]);
+  const isCelularValid = celular.replace(/\D/g, '').length >= 10;
+  const isEmailValid = email.includes('@') && email.includes('.');
+  const isPasswordValid = password.length >= 6;
 
-  useEffect(() => {
-    if (resendTimer <= 0) return;
-    const t = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendTimer]);
-
-  const handleSendCode = async (e) => {
+  const handleCelularLogin = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccessMessage('');
-    setLoading(true);
+    setGoogleError('');
 
-    const cleanNumber = phoneNumber.replace(/\D/g, '');
-    if (cleanNumber.length < 10 || cleanNumber.length > 11) {
-      setError('Digite um número válido com DDD (10 ou 11 dígitos).');
-      setLoading(false);
+    if (!isCelularValid || !isPasswordValid) {
+      setError('Preencha todos os campos corretamente.');
       return;
     }
 
-    const formattedNumber = `+55${cleanNumber}`;
-
-    try {
-      const appVerifier = window.recaptchaVerifier;
-      if (!appVerifier) {
-        setError('Sistema de verificação não carregou. Recarregue a página.');
-        setLoading(false);
-        return;
-      }
-
-      const confirmation = await signInWithPhoneNumber(auth, formattedNumber, appVerifier);
-      setConfirmationResult(confirmation);
-      setStep(2);
-      setSuccessMessage(`SMS enviado para +55 ${cleanNumber.slice(0, 2)} ${cleanNumber.slice(2)}`);
-      setResendTimer(60);
-    } catch (err) {
-      console.error('Erro Phone Auth:', err);
-      setError(getErrorMessage(err.code));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (resendTimer > 0) return;
-    setError('');
-    setLoading(true);
-    const cleanNumber = phoneNumber.replace(/\D/g, '');
-    const formattedNumber = `+55${cleanNumber}`;
-
-    try {
-      const confirmation = await signInWithPhoneNumber(auth, formattedNumber, window.recaptchaVerifier);
-      setConfirmationResult(confirmation);
-      setResendTimer(60);
-      setSuccessMessage('SMS reenviado!');
-    } catch (err) {
-      setError(getErrorMessage(err.code));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyCode = async (e) => {
-    e.preventDefault();
-    setError('');
     setLoading(true);
 
+    const cleanedCelular = celular.replace(/\D/g, '');
+    const authEmail = celularToEmail(cleanedCelular);
+
     try {
-      await confirmationResult.confirm(verificationCode);
+      await signInWithEmailAndPassword(auth, authEmail, password);
       navigate(returnTo);
     } catch (err) {
-      console.error('Erro verificação:', err);
-      if (err.code === 'auth/invalid-verification-code') {
-        setError('Código inválido. Verifique o SMS recebido.');
-      } else if (err.code === 'auth/code-expired') {
-        setError('Código expirado. Solicite um novo.');
-      } else {
-        setError('Erro ao verificar código. Tente novamente.');
-      }
+      console.error('Erro login celular:', err);
+      setError(getErrorMessage(err.code));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChangeNumber = () => {
-    setStep(1);
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
     setError('');
-    setSuccessMessage('');
-    setVerificationCode('');
-    setConfirmationResult(null);
+    setGoogleError('');
+
+    if (!isEmailValid || !isPasswordValid) {
+      setError('Preencha todos os campos corretamente.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await signInWithEmailAndPassword(auth, email.toLowerCase().trim(), password);
+      navigate(returnTo);
+    } catch (err) {
+      console.error('Erro login email:', err);
+      setError(getErrorMessage(err.code));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = () => {
+    navigate(returnTo);
+  };
+
+  const handleGoogleError = (message) => {
+    setGoogleError(message);
   };
 
   return (
@@ -160,15 +107,11 @@ export default function ClientLogin() {
 
         <div className="text-center mb-8 relative z-10">
           <div className="bg-primary/10 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-primary">
-            {step === 1 ? <Phone size={32} /> : <Lock size={32} />}
+            {loginType === 'celular' ? <Phone size={32} /> : <Mail size={32} />}
           </div>
-          <h2 className="text-2xl font-black text-white">
-            {step === 1 ? 'Acesso Rápido' : 'Confirme seu Código'}
-          </h2>
+          <h2 className="text-2xl font-black text-white">Fazer Login</h2>
           <p className="text-gray-400 mt-2 text-sm font-medium">
-            {step === 1
-              ? 'Agendamento super rápido em menos de 1 minuto! Sem senhas.'
-              : 'Enviamos um SMS com 6 dígitos para o seu celular.'}
+            Acesse sua conta BrilhoCar
           </p>
         </div>
 
@@ -178,18 +121,67 @@ export default function ClientLogin() {
           </div>
         )}
 
-        {successMessage && !error && (
-          <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-4 rounded-xl mb-6 text-sm font-semibold text-center">
-            {successMessage}
+        {googleError && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl mb-6 text-sm font-semibold text-center">
+            {googleError}
           </div>
         )}
 
-        <div id="recaptcha-container"></div>
+        {/* Google Button */}
+        <div className="mb-6 relative z-10">
+          <GoogleButton
+            returnTo={returnTo}
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+          />
+        </div>
 
-        {step === 1 ? (
-          <form onSubmit={handleSendCode} className="space-y-6 relative z-10">
+        {/* Divisor */}
+        <div className="relative z-10 mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-700"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-4 bg-surface text-gray-500">ou continue com</span>
+          </div>
+        </div>
+
+        {/* Toggle Celular / Email */}
+        <div className="flex gap-2 mb-6 relative z-10">
+          <button
+            type="button"
+            onClick={() => { setLoginType('celular'); setError(''); }}
+            className={`flex-1 py-3 rounded-xl font-semibold text-sm transition-all ${
+              loginType === 'celular'
+                ? 'bg-primary text-black'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            <Phone size={16} className="inline mr-2" />
+            Celular
+          </button>
+          <button
+            type="button"
+            onClick={() => { setLoginType('email'); setError(''); }}
+            className={`flex-1 py-3 rounded-xl font-semibold text-sm transition-all ${
+              loginType === 'email'
+                ? 'bg-primary text-black'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            <Mail size={16} className="inline mr-2" />
+            Email
+          </button>
+        </div>
+
+        {/* Formulário */}
+        <form
+          onSubmit={loginType === 'celular' ? handleCelularLogin : handleEmailLogin}
+          className="space-y-4 relative z-10"
+        >
+          {loginType === 'celular' ? (
             <div>
-              <label className="block text-sm font-bold text-gray-400 mb-2">WhatsApp com DDD</label>
+              <label className="block text-sm font-bold text-gray-400 mb-2">Celular com DDD</label>
               <div className="flex items-center bg-[#0b0b0f] border border-gray-800 rounded-xl overflow-hidden focus-within:border-primary transition-colors">
                 <span className="px-4 py-4 text-gray-500 font-bold border-r border-gray-800 bg-gray-900/50">
                   +55
@@ -197,80 +189,75 @@ export default function ClientLogin() {
                 <input
                   type="tel"
                   required
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(formatPhone(e.target.value))}
+                  value={celular}
+                  onChange={(e) => setCelular(formatPhone(e.target.value))}
                   className="flex-1 bg-transparent px-4 py-4 text-white font-bold text-lg focus:outline-none"
                   placeholder="(11) 99999-9999"
                   inputMode="numeric"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                Você receberá um código de 6 dígitos por SMS
-              </p>
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary text-black font-black py-4 rounded-xl hover:bg-[#00c853] transition-all duration-300 flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(0,230,118,0.2)] hover:shadow-[0_0_30px_rgba(0,230,118,0.4)] hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0"
-            >
-              {loading ? <Loader2 className="animate-spin" size={24} /> : 'Receber Código SMS'}
-              {!loading && <ArrowRight size={20} />}
-            </button>
-
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-500 font-semibold mt-4">
-              <ShieldCheck size={14} className="text-primary"/>
-              Seus dados estão 100% seguros conosco.
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifyCode} className="space-y-6 relative z-10">
+          ) : (
             <div>
-              <label className="block text-sm font-bold text-gray-400 mb-2 text-center">Código de 6 dígitos</label>
+              <label className="block text-sm font-bold text-gray-400 mb-2">Email</label>
+              <div className="flex items-center bg-[#0b0b0f] border border-gray-800 rounded-xl overflow-hidden focus-within:border-primary transition-colors">
+                <span className="px-4 py-4 text-gray-500 font-bold border-r border-gray-800 bg-gray-900/50">
+                  <Mail size={18} />
+                </span>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 bg-transparent px-4 py-4 text-white font-bold focus:outline-none"
+                  placeholder="seu@email.com"
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-bold text-gray-400 mb-2">Senha</label>
+            <div className="flex items-center bg-[#0b0b0f] border border-gray-800 rounded-xl overflow-hidden focus-within:border-primary transition-colors">
+              <span className="px-4 py-4 text-gray-500 font-bold border-r border-gray-800 bg-gray-900/50">
+                <Lock size={18} />
+              </span>
               <input
-                type="text"
+                type="password"
                 required
-                maxLength="6"
-                value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full bg-[#0b0b0f] border border-gray-800 rounded-xl px-4 py-4 text-white font-black text-2xl tracking-[0.5em] text-center focus:outline-none focus:border-primary transition-colors"
-                placeholder="000000"
-                inputMode="numeric"
-                autoFocus
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="flex-1 bg-transparent px-4 py-4 text-white font-bold focus:outline-none"
+                placeholder="Sua senha"
+                autoComplete="current-password"
               />
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                Olhe a mensagem de texto do número +1 415-523-8886
-              </p>
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading || verificationCode.length !== 6}
-              className="w-full bg-primary text-black font-black py-4 rounded-xl hover:bg-[#00c853] transition-all duration-300 flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(0,230,118,0.2)] disabled:opacity-50 disabled:hover:translate-y-0"
-            >
-              {loading ? <Loader2 className="animate-spin" size={24} /> : 'Confirmar e Acessar'}
-            </button>
+          <button
+            type="submit"
+            disabled={loading || !isPasswordValid || (loginType === 'celular' ? !isCelularValid : !isEmailValid)}
+            className="w-full bg-primary text-black font-black py-4 rounded-xl hover:bg-[#00c853] transition-all duration-300 flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(0,230,118,0.2)] hover:shadow-[0_0_30px_rgba(0,230,118,0.4)] hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0"
+          >
+            {loading ? <Loader2 className="animate-spin" size={24} /> : 'Entrar'}
+            {!loading && <ArrowRight size={20} />}
+          </button>
 
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={handleResendCode}
-                disabled={resendTimer > 0 || loading}
-                className="w-full text-center text-sm text-gray-400 font-semibold hover:text-white transition-colors disabled:opacity-50 disabled:hover:text-gray-400 flex items-center justify-center gap-2"
-              >
-                <RefreshCw size={14} />
-                {resendTimer > 0 ? `Reenviar em ${resendTimer}s` : 'Reenviar código'}
-              </button>
-              <button
-                type="button"
-                onClick={handleChangeNumber}
-                className="w-full text-center text-sm text-gray-400 font-semibold hover:text-white transition-colors"
-              >
-                Trocar de número
-              </button>
-            </div>
-          </form>
-        )}
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 font-semibold mt-4">
+            <ShieldCheck size={14} className="text-primary" />
+            Seus dados estão 100% seguros conosco.
+          </div>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-gray-400 text-sm">
+            Não tem conta?{' '}
+            <Link to="/signup" className="text-primary font-bold hover:underline">
+              Cadastre-se
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
