@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db } from '../firebase';
-import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard } from 'lucide-react';
 
 export default function Admin() {
   const [appointments, setAppointments] = useState([]);
@@ -78,6 +78,15 @@ export default function Admin() {
           <Gift size={28} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
           <p className="font-bold text-white">Promoções</p>
           <p className="text-xs text-gray-500 mt-1">Black Friday, Natal, etc</p>
+        </Link>
+
+        <Link
+          to="/admin/pix"
+          className="bg-surface border border-gray-800 rounded-2xl p-5 hover:border-green-500/50 transition-all group"
+        >
+          <CreditCard size={28} className="text-green-500 mb-3 group-hover:scale-110 transition-transform" />
+          <p className="font-bold text-white">Configurar PIX</p>
+          <p className="text-xs text-gray-500 mt-1">Gateway de pagamento</p>
         </Link>
 
         <div className="bg-surface border border-gray-800 rounded-2xl p-5 opacity-60 cursor-not-allowed">

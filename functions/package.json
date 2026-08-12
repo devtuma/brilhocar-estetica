@@ -10,19 +10,21 @@
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "predeploy": "npm run build"
   },
   "engines": {
-    "node": "18"
+    "node": "22"
   },
   "dependencies": {
     "firebase-admin": "^11.11.0",
     "firebase-functions": "^4.5.0",
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "dotenv": "^16.4.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
-    "@types/node": "^18.0.0"
+    "@types/node": "^22.0.0"
   },
   "private": true
 }

@@ -1,6 +1,10 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import axios from 'axios';
+import * as dotenv from 'dotenv';
+
+// Carregar variáveis de ambiente do .env.local
+dotenv.config({ path: '.env.local' });
 
 // Inicializar Firebase Admin
 admin.initializeApp();
@@ -9,12 +13,15 @@ const db = admin.firestore();
 // ============================================
 // CONFIGURAÇÕES ASAAS
 // ============================================
-const ASAAS_BASE_URL = 'https://api.asaas.com/v3';
-const ASAAS_API_KEY = functions.config().asaas?.api_key || process.env.ASAAS_API_KEY;
+const ASAAS_BASE_URL = functions.config().asaas?.environment === 'sandbox'
+  ? 'https://api-sandbox.asaas.com/api/v3'
+  : 'https://api.asaas.com/v3';
+
+const ASAAS_API_KEY = functions.config().asaas?.api_key || process.env.ASAAS_API_KEY || '';
 
 // Headers para API Asaas
 const asaasHeaders = {
-  'access_token': ASAAS_API_KEY || '',
+  'access_token': ASAAS_API_KEY,
   'Content-Type': 'application/json'
 };
 
@@ -45,7 +52,7 @@ interface AsaasPayment {
   description: string | null;
 }
 
-interface PixPaymentResult {
+export interface PixPaymentResult {
   success: boolean;
   paymentId?: string;
   qrCode?: string;
@@ -69,18 +76,19 @@ async function getOrCreateAsaasCustomer(userData: {
 }): Promise<string> {
   const celularLimpo = userData.celular.replace(/\D/g, '');
 
-  // Buscar cliente existente pelo telefone
   try {
+    // Buscar cliente existente pelo telefone
     const response = await axios.get(`${ASAAS_BASE_URL}/customers`, {
       headers: asaasHeaders,
       params: { phone: celularLimpo }
     });
 
     if (response.data.data && response.data.data.length > 0) {
+      console.log(`Cliente Asaas encontrado: ${response.data.data[0].id}`);
       return response.data.data[0].id;
     }
-  } catch (error) {
-    console.log('Cliente não encontrado, criando novo...');
+  } catch (error: any) {
+    console.log('Cliente não encontrado, criando novo...', error?.message);
   }
 
   // Criar novo cliente
@@ -93,11 +101,16 @@ async function getOrCreateAsaasCustomer(userData: {
     customerData.email = userData.email;
   }
 
-  const response = await axios.post(`${ASAAS_BASE_URL}/customers`, customerData, {
-    headers: asaasHeaders
-  });
-
-  return response.data.id;
+  try {
+    const response = await axios.post(`${ASAAS_BASE_URL}/customers`, customerData, {
+      headers: asaasHeaders
+    });
+    console.log(`Cliente Asaas criado: ${response.data.id}`);
+    return response.data.id;
+  } catch (error: any) {
+    console.error('Erro ao criar cliente Asaas:', error?.response?.data || error?.message);
+    throw new Error('Falha ao criar cliente no Asaas');
+  }
 }
 
 /**
@@ -121,11 +134,14 @@ async function createPixPayment(
     description: description
   };
 
+  console.log(`Criando PIX: amount=${amount}, customer=${customerId}`);
+
   const paymentResponse = await axios.post(`${ASAAS_BASE_URL}/payments`, paymentData, {
     headers: asaasHeaders
   });
 
   const payment: AsaasPayment = paymentResponse.data;
+  console.log(`PIX criado: ${payment.id}, status=${payment.status}`);
 
   // Obter QR Code PIX
   const qrResponse = await axios.get(`${ASAAS_BASE_URL}/payments/${payment.id}/pixQrCode`, {
@@ -196,9 +212,8 @@ export const createPixPaymentForAppointment = functions.https.onCall(async (data
 
   // Verificar se o usuário é dono do agendamento ou admin
   const userId = context.auth.uid;
-  const isAdmin = appointment.userId !== userId; // Se não é dono, é admin (lógica invertida)
 
-  if (appointment.userId !== userId && !isAdmin) {
+  if (appointment.userId !== userId) {
     throw new functions.https.HttpsError('permission-denied', 'Sem permissão para este agendamento');
   }
 
@@ -267,6 +282,8 @@ export const createPixPaymentForAppointment = functions.https.onCall(async (data
       pixExpiresAt: admin.firestore.Timestamp.fromDate(new Date(pixResult.expiresAt)),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
+
+    console.log(`Pagamento PIX criado com sucesso: ${pixResult.paymentId}`);
 
     return {
       success: true,
