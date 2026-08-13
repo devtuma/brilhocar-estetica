@@ -2,7 +2,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
-import { onRequest } from 'firebase-functions/v2/https';
+const cors = require('cors');
 
 // Carregar variáveis de ambiente do .env.local
 dotenv.config({ path: '.env.local' });
@@ -721,14 +721,17 @@ export const bootstrapAdmin = functions.https.onCall(async (_data, context) => {
 });
 
 /**
- * Bootstrap Admin HTTP - Endpoint HTTP com CORS habilitado
+ * Bootstrap Admin HTTP - Endpoint HTTP v1 com CORS manual
  * Alternativa para casos onde httpsCallable tem problemas de CORS
  * Uso: POST /bootstrapAdminHttp com header Authorization: Bearer <firebase-id-token>
- *       Body: {} (vazio)
  */
-export const bootstrapAdminHttp = onRequest(
-  { cors: true, region: 'us-central1' },
-  async (req, res) => {
+const corsHandler = cors({
+  origin: true, // Aceita qualquer origem (em produção, especifique os domínios)
+  credentials: false
+});
+
+export const bootstrapAdminHttp = functions.https.onRequest((req, res) => {
+  corsHandler(req, res, async () => {
     // Validar método
     if (req.method !== 'POST') {
       res.status(405).json({ success: false, error: 'Método não permitido' });
@@ -779,8 +782,8 @@ export const bootstrapAdminHttp = onRequest(
         error: err.message || 'Erro ao processar'
       });
     }
-  }
-);
+  });
+});
 
 /**
  * Verificar pagamentos expirados (executa a cada 5 minutos)

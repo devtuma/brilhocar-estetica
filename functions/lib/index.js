@@ -42,7 +42,7 @@ const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const axios_1 = __importDefault(require("axios"));
 const dotenv = __importStar(require("dotenv"));
-const https_1 = require("firebase-functions/v2/https");
+const cors = require('cors');
 // Carregar variáveis de ambiente do .env.local
 dotenv.config({ path: '.env.local' });
 // Inicializar Firebase Admin
@@ -605,56 +605,61 @@ exports.bootstrapAdmin = functions.https.onCall(async (_data, context) => {
     };
 });
 /**
- * Bootstrap Admin HTTP - Endpoint HTTP com CORS habilitado
+ * Bootstrap Admin HTTP - Endpoint HTTP v1 com CORS manual
  * Alternativa para casos onde httpsCallable tem problemas de CORS
  * Uso: POST /bootstrapAdminHttp com header Authorization: Bearer <firebase-id-token>
- *       Body: {} (vazio)
  */
-exports.bootstrapAdminHttp = (0, https_1.onRequest)({ cors: true, region: 'us-central1' }, async (req, res) => {
-    // Validar método
-    if (req.method !== 'POST') {
-        res.status(405).json({ success: false, error: 'Método não permitido' });
-        return;
-    }
-    try {
-        // Pegar token do header Authorization
-        const authHeader = req.headers.authorization || '';
-        const idToken = authHeader.startsWith('Bearer ')
-            ? authHeader.split('Bearer ')[1]
-            : authHeader;
-        if (!idToken) {
-            res.status(401).json({ success: false, error: 'Token não fornecido' });
+const corsHandler = cors({
+    origin: true, // Aceita qualquer origem (em produção, especifique os domínios)
+    credentials: false
+});
+exports.bootstrapAdminHttp = functions.https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        // Validar método
+        if (req.method !== 'POST') {
+            res.status(405).json({ success: false, error: 'Método não permitido' });
             return;
         }
-        // Verificar token com Firebase Admin
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        const uid = decodedToken.uid;
-        const email = decodedToken.email;
-        if (!email) {
-            res.status(400).json({ success: false, error: 'Email não disponível no token' });
-            return;
+        try {
+            // Pegar token do header Authorization
+            const authHeader = req.headers.authorization || '';
+            const idToken = authHeader.startsWith('Bearer ')
+                ? authHeader.split('Bearer ')[1]
+                : authHeader;
+            if (!idToken) {
+                res.status(401).json({ success: false, error: 'Token não fornecido' });
+                return;
+            }
+            // Verificar token com Firebase Admin
+            const decodedToken = await admin.auth().verifyIdToken(idToken);
+            const uid = decodedToken.uid;
+            const email = decodedToken.email;
+            if (!email) {
+                res.status(400).json({ success: false, error: 'Email não disponível no token' });
+                return;
+            }
+            // Adicionar como admin na coleção
+            await db.collection('admins').doc(uid).set({
+                email,
+                addedAt: admin.firestore.FieldValue.serverTimestamp(),
+                role: 'admin'
+            }, { merge: true });
+            console.log(`[bootstrapAdminHttp] Admin adicionado: ${email} (uid: ${uid})`);
+            res.status(200).json({
+                success: true,
+                uid,
+                email,
+                message: `Admin ${email} configurado com sucesso!`
+            });
         }
-        // Adicionar como admin na coleção
-        await db.collection('admins').doc(uid).set({
-            email,
-            addedAt: admin.firestore.FieldValue.serverTimestamp(),
-            role: 'admin'
-        }, { merge: true });
-        console.log(`[bootstrapAdminHttp] Admin adicionado: ${email} (uid: ${uid})`);
-        res.status(200).json({
-            success: true,
-            uid,
-            email,
-            message: `Admin ${email} configurado com sucesso!`
-        });
-    }
-    catch (err) {
-        console.error('[bootstrapAdminHttp] Erro:', err);
-        res.status(500).json({
-            success: false,
-            error: err.message || 'Erro ao processar'
-        });
-    }
+        catch (err) {
+            console.error('[bootstrapAdminHttp] Erro:', err);
+            res.status(500).json({
+                success: false,
+                error: err.message || 'Erro ao processar'
+            });
+        }
+    });
 });
 /**
  * Verificar pagamentos expirados (executa a cada 5 minutos)
