@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
-import { db } from '../firebase';
-import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar } from 'lucide-react';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions, auth } from '../firebase';
+import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle } from 'lucide-react';
 
 export default function Admin() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const [bootstrapping, setBootstrapping] = useState(false);
+  const [bootstrapMsg, setBootstrapMsg] = useState(null);
 
   useEffect(() => {
     // Escuta em tempo real todas as OSs
@@ -16,9 +21,48 @@ export default function Admin() {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setAppointments(data);
       setLoading(false);
+    }, (err) => {
+      console.error('Erro ao carregar agendamentos:', err);
+      setLoading(false);
     });
+
+    // Verificar se o usuário é admin (na coleção admins)
+    const checkAdmin = async () => {
+      if (!auth.currentUser) {
+        setCheckingAdmin(false);
+        return;
+      }
+      try {
+        const adminDoc = await import('firebase/firestore').then(m => m.getDoc(doc(db, 'admins', auth.currentUser.uid)));
+        setIsAdmin(adminDoc.exists());
+      } catch (err) {
+        console.error('Erro ao verificar admin:', err);
+        setIsAdmin(false);
+      }
+      setCheckingAdmin(false);
+    };
+    checkAdmin();
+
     return () => unsubscribe();
   }, []);
+
+  const handleBootstrapAdmin = async () => {
+    setBootstrapping(true);
+    setBootstrapMsg(null);
+    try {
+      const fn = httpsCallable(functions, 'bootstrapAdmin');
+      const result = await fn({});
+      setBootstrapMsg({ type: 'success', text: result.data.message });
+      setIsAdmin(true);
+      // Recarregar após 1 segundo
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+      console.error('Erro no bootstrap:', err);
+      setBootstrapMsg({ type: 'error', text: err.message || 'Erro ao tornar-se admin' });
+    } finally {
+      setBootstrapping(false);
+    }
+  };
 
   const updateStatus = async (id, newStatus) => {
     try {
@@ -59,6 +103,52 @@ export default function Admin() {
           <p className="text-gray-400 mt-1">Controle total do seu negócio</p>
         </div>
       </div>
+
+      {/* Banner de permissões - aparece se não for admin */}
+      {!checkingAdmin && !isAdmin && (
+        <div className="mb-8 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-2xl p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center shrink-0">
+              <Shield className="text-yellow-500" size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-yellow-500 text-lg mb-1">
+                Permissão de Admin Necessária
+              </h3>
+              <p className="text-yellow-200/80 text-sm mb-4">
+                Você está logado mas não tem permissão para salvar configurações.
+                Clique no botão abaixo para se tornar admin (apenas na primeira vez).
+              </p>
+              {bootstrapMsg && (
+                <div className={`mb-3 p-3 rounded-lg text-sm font-semibold ${
+                  bootstrapMsg.type === 'success'
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-red-500/20 text-red-400'
+                }`}>
+                  {bootstrapMsg.text}
+                </div>
+              )}
+              <button
+                onClick={handleBootstrapAdmin}
+                disabled={bootstrapping}
+                className="bg-yellow-500 text-black font-bold px-6 py-2.5 rounded-xl hover:bg-yellow-400 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {bootstrapping ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                    Ativando...
+                  </>
+                ) : (
+                  <>
+                    <Shield size={18} />
+                    Ativar Permissões Admin
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Menu de Navegação CMS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

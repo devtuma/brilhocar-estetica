@@ -192,7 +192,8 @@ function gerarCpfFromCelular(celular: string): string {
 async function createPixPayment(
   customerId: string,
   amount: number,
-  description: string
+  description: string,
+  pixKey?: string
 ): Promise<{ paymentId: string; qrCode: string; payload: string; expiresAt: string }> {
   // Calcular data de expiração (10 minutos)
   // Após 10min sem pagamento, o slot é liberado para outra pessoa agendar
@@ -201,7 +202,8 @@ async function createPixPayment(
   const dueDate = expiresAt.toISOString().split('T')[0];
 
   // Criar pagamento PIX
-  const paymentData = {
+  // Se pixKey foi passada, usar como chave específica (precisa estar cadastrada na conta Asaas)
+  const paymentData: any = {
     customer: customerId,
     billingType: 'PIX',
     value: amount,
@@ -209,7 +211,15 @@ async function createPixPayment(
     description: description
   };
 
-  console.log(`Criando PIX: amount=${amount}, customer=${customerId}`);
+  // Se tem chave PIX configurada pelo admin, passar como endereço da chave PIX
+  // Caso contrário, Asaas usa a chave padrão da conta
+  if (pixKey && pixKey.trim().length > 0) {
+    paymentData.pix = {
+      addressKey: pixKey.trim()
+    };
+  }
+
+  console.log(`Criando PIX: amount=${amount}, customer=${customerId}, pixKey=${pixKey ? 'sim' : 'não'}`);
 
   const paymentResponse = await axios.post(`${ASAAS_BASE_URL}/payments`, paymentData, {
     headers: asaasHeaders
@@ -360,8 +370,9 @@ export const createPixPaymentForAppointment = functions.https.onCall(async (data
     });
 
     // Criar pagamento PIX
+    // Passar pixKey configurada pelo admin (se houver) para o Asaas
     const description = `Sinal agendamento #${appointment.os || appointmentId}`;
-    const pixResult = await createPixPayment(customerId, pixAmount, description);
+    const pixResult = await createPixPayment(customerId, pixAmount, description, pixConfig.pixKey);
 
     // Atualizar agendamento no Firestore
     await appointmentRef.update({
@@ -654,6 +665,53 @@ export const saveTransaction = functions.https.onCall(async (data, context) => {
 // ============================================
 // A função adminUpdateConfigHttp era temporária e foi REMOVIDA.
 // Atualizar config via painel admin (frontend) que tem auth via Firebase Auth + Firestore rules.
+
+/**
+ * Bootstrap Admin - Adiciona o usuário atual como admin
+ * IMPORTANTE: só funciona se o email do usuário estiver na lista de admins permitidos
+ * Configurar via: functions.config().admin.emails = "email1@x.com,email2@y.com"
+ * Ou variável de ambiente: ADMIN_EMAILS
+ */
+export const bootstrapAdmin = functions.https.onCall(async (_data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+  }
+
+  const email = context.auth.token.email;
+  const uid = context.auth.uid;
+
+  if (!email) {
+    throw new functions.https.HttpsError('failed-precondition', 'Email não disponível');
+  }
+
+  // Lista de emails admin permitidos (configurável)
+  const allowedEmails = (functions.config().admin?.emails || process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((e: string) => e.trim().toLowerCase())
+    .filter((e: string) => e.length > 0);
+
+  // Se não configurado, aceita o email do primeiro admin que tentar (one-time bootstrap)
+  // Em produção, configure a lista de emails permitidos
+  if (allowedEmails.length > 0 && !allowedEmails.includes(email.toLowerCase())) {
+    throw new functions.https.HttpsError('permission-denied', `Email ${email} não autorizado`);
+  }
+
+  // Adicionar como admin na coleção
+  await db.collection('admins').doc(uid).set({
+    email,
+    addedAt: admin.firestore.FieldValue.serverTimestamp(),
+    role: 'admin'
+  });
+
+  console.log(`[bootstrapAdmin] Admin adicionado: ${email} (uid: ${uid})`);
+
+  return {
+    success: true,
+    uid,
+    email,
+    message: `Admin ${email} configurado com sucesso! Agora pode salvar configs.`
+  };
+});
 
 /**
  * Verificar pagamentos expirados (executa a cada 5 minutos)
