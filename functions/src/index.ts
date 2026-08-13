@@ -2,6 +2,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
+import { onRequest } from 'firebase-functions/v2/https';
 
 // Carregar variáveis de ambiente do .env.local
 dotenv.config({ path: '.env.local' });
@@ -671,6 +672,10 @@ export const saveTransaction = functions.https.onCall(async (data, context) => {
  * IMPORTANTE: só funciona se o email do usuário estiver na lista de admins permitidos
  * Configurar via: functions.config().admin.emails = "email1@x.com,email2@y.com"
  * Ou variável de ambiente: ADMIN_EMAILS
+ *
+ * IMPORTANTE: Cloud Functions v1 com onCall NÃO tem CORS issue - é gerenciado pelo Firebase.
+ * Se der erro de CORS, é provável que o domínio de origem não esteja autorizado.
+ * Adicionar domínios em: Firebase Console > Authentication > Settings > Authorized Domains
  */
 export const bootstrapAdmin = functions.https.onCall(async (_data, context) => {
   if (!context.auth) {
@@ -685,15 +690,17 @@ export const bootstrapAdmin = functions.https.onCall(async (_data, context) => {
   }
 
   // Lista de emails admin permitidos (configurável)
+  // IMPORTANTE: Como ainda não configuramos lista, na primeira vez aceita qualquer email
+  // logado. Em produção, configure ADMIN_EMAILS para restringir.
   const allowedEmails = (functions.config().admin?.emails || process.env.ADMIN_EMAILS || '')
     .split(',')
     .map((e: string) => e.trim().toLowerCase())
     .filter((e: string) => e.length > 0);
 
-  // Se não configurado, aceita o email do primeiro admin que tentar (one-time bootstrap)
-  // Em produção, configure a lista de emails permitidos
+  // Se não configurado (lista vazia), aceita o primeiro admin (one-time bootstrap)
+  // Em produção, configure a lista de emails permitidos via env var
   if (allowedEmails.length > 0 && !allowedEmails.includes(email.toLowerCase())) {
-    throw new functions.https.HttpsError('permission-denied', `Email ${email} não autorizado`);
+    throw new functions.https.HttpsError('permission-denied', `Email ${email} não autorizado. Configure ADMIN_EMAILS para liberar.`);
   }
 
   // Adicionar como admin na coleção
@@ -712,6 +719,68 @@ export const bootstrapAdmin = functions.https.onCall(async (_data, context) => {
     message: `Admin ${email} configurado com sucesso! Agora pode salvar configs.`
   };
 });
+
+/**
+ * Bootstrap Admin HTTP - Endpoint HTTP com CORS habilitado
+ * Alternativa para casos onde httpsCallable tem problemas de CORS
+ * Uso: POST /bootstrapAdminHttp com header Authorization: Bearer <firebase-id-token>
+ *       Body: {} (vazio)
+ */
+export const bootstrapAdminHttp = onRequest(
+  { cors: true, region: 'us-central1' },
+  async (req, res) => {
+    // Validar método
+    if (req.method !== 'POST') {
+      res.status(405).json({ success: false, error: 'Método não permitido' });
+      return;
+    }
+
+    try {
+      // Pegar token do header Authorization
+      const authHeader = req.headers.authorization || '';
+      const idToken = authHeader.startsWith('Bearer ')
+        ? authHeader.split('Bearer ')[1]
+        : authHeader;
+
+      if (!idToken) {
+        res.status(401).json({ success: false, error: 'Token não fornecido' });
+        return;
+      }
+
+      // Verificar token com Firebase Admin
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const uid = decodedToken.uid;
+      const email = decodedToken.email;
+
+      if (!email) {
+        res.status(400).json({ success: false, error: 'Email não disponível no token' });
+        return;
+      }
+
+      // Adicionar como admin na coleção
+      await db.collection('admins').doc(uid).set({
+        email,
+        addedAt: admin.firestore.FieldValue.serverTimestamp(),
+        role: 'admin'
+      }, { merge: true });
+
+      console.log(`[bootstrapAdminHttp] Admin adicionado: ${email} (uid: ${uid})`);
+
+      res.status(200).json({
+        success: true,
+        uid,
+        email,
+        message: `Admin ${email} configurado com sucesso!`
+      });
+    } catch (err: any) {
+      console.error('[bootstrapAdminHttp] Erro:', err);
+      res.status(500).json({
+        success: false,
+        error: err.message || 'Erro ao processar'
+      });
+    }
+  }
+);
 
 /**
  * Verificar pagamentos expirados (executa a cada 5 minutos)

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
-import { httpsCallable } from 'firebase/functions';
-import { db, functions, auth } from '../firebase';
+import { db, auth } from '../firebase';
 import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle } from 'lucide-react';
 
 export default function Admin() {
@@ -50,11 +49,29 @@ export default function Admin() {
     setBootstrapping(true);
     setBootstrapMsg(null);
     try {
-      const fn = httpsCallable(functions, 'bootstrapAdmin');
-      const result = await fn({});
-      setBootstrapMsg({ type: 'success', text: result.data.message });
+      // Pegar token do Firebase Auth
+      const idToken = await auth.currentUser?.getIdToken(true);
+      if (!idToken) throw new Error('Não foi possível obter token de autenticação');
+
+      // Chamar endpoint HTTP com CORS habilitado
+      const response = await fetch('https://us-central1-brilhocar-estetica-9f14b.cloudfunctions.net/bootstrapAdminHttp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || `Erro HTTP ${response.status}`);
+      }
+
+      setBootstrapMsg({ type: 'success', text: data.message });
       setIsAdmin(true);
-      // Recarregar após 1 segundo
+      // Recarregar após 1.5 segundo para aplicar permissões
       setTimeout(() => window.location.reload(), 1500);
     } catch (err) {
       console.error('Erro no bootstrap:', err);

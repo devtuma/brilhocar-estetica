@@ -37,11 +37,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkExpiredPayments = exports.bootstrapAdmin = exports.saveTransaction = exports.cancelPixPayment = exports.asaasWebhook = exports.checkPixPaymentStatus = exports.createPixPaymentForAppointment = void 0;
+exports.checkExpiredPayments = exports.bootstrapAdminHttp = exports.bootstrapAdmin = exports.saveTransaction = exports.cancelPixPayment = exports.asaasWebhook = exports.checkPixPaymentStatus = exports.createPixPaymentForAppointment = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const axios_1 = __importDefault(require("axios"));
 const dotenv = __importStar(require("dotenv"));
+const https_1 = require("firebase-functions/v2/https");
 // Carregar variáveis de ambiente do .env.local
 dotenv.config({ path: '.env.local' });
 // Inicializar Firebase Admin
@@ -562,6 +563,10 @@ exports.saveTransaction = functions.https.onCall(async (data, context) => {
  * IMPORTANTE: só funciona se o email do usuário estiver na lista de admins permitidos
  * Configurar via: functions.config().admin.emails = "email1@x.com,email2@y.com"
  * Ou variável de ambiente: ADMIN_EMAILS
+ *
+ * IMPORTANTE: Cloud Functions v1 com onCall NÃO tem CORS issue - é gerenciado pelo Firebase.
+ * Se der erro de CORS, é provável que o domínio de origem não esteja autorizado.
+ * Adicionar domínios em: Firebase Console > Authentication > Settings > Authorized Domains
  */
 exports.bootstrapAdmin = functions.https.onCall(async (_data, context) => {
     var _a;
@@ -574,14 +579,16 @@ exports.bootstrapAdmin = functions.https.onCall(async (_data, context) => {
         throw new functions.https.HttpsError('failed-precondition', 'Email não disponível');
     }
     // Lista de emails admin permitidos (configurável)
+    // IMPORTANTE: Como ainda não configuramos lista, na primeira vez aceita qualquer email
+    // logado. Em produção, configure ADMIN_EMAILS para restringir.
     const allowedEmails = (((_a = functions.config().admin) === null || _a === void 0 ? void 0 : _a.emails) || process.env.ADMIN_EMAILS || '')
         .split(',')
         .map((e) => e.trim().toLowerCase())
         .filter((e) => e.length > 0);
-    // Se não configurado, aceita o email do primeiro admin que tentar (one-time bootstrap)
-    // Em produção, configure a lista de emails permitidos
+    // Se não configurado (lista vazia), aceita o primeiro admin (one-time bootstrap)
+    // Em produção, configure a lista de emails permitidos via env var
     if (allowedEmails.length > 0 && !allowedEmails.includes(email.toLowerCase())) {
-        throw new functions.https.HttpsError('permission-denied', `Email ${email} não autorizado`);
+        throw new functions.https.HttpsError('permission-denied', `Email ${email} não autorizado. Configure ADMIN_EMAILS para liberar.`);
     }
     // Adicionar como admin na coleção
     await db.collection('admins').doc(uid).set({
@@ -596,6 +603,58 @@ exports.bootstrapAdmin = functions.https.onCall(async (_data, context) => {
         email,
         message: `Admin ${email} configurado com sucesso! Agora pode salvar configs.`
     };
+});
+/**
+ * Bootstrap Admin HTTP - Endpoint HTTP com CORS habilitado
+ * Alternativa para casos onde httpsCallable tem problemas de CORS
+ * Uso: POST /bootstrapAdminHttp com header Authorization: Bearer <firebase-id-token>
+ *       Body: {} (vazio)
+ */
+exports.bootstrapAdminHttp = (0, https_1.onRequest)({ cors: true, region: 'us-central1' }, async (req, res) => {
+    // Validar método
+    if (req.method !== 'POST') {
+        res.status(405).json({ success: false, error: 'Método não permitido' });
+        return;
+    }
+    try {
+        // Pegar token do header Authorization
+        const authHeader = req.headers.authorization || '';
+        const idToken = authHeader.startsWith('Bearer ')
+            ? authHeader.split('Bearer ')[1]
+            : authHeader;
+        if (!idToken) {
+            res.status(401).json({ success: false, error: 'Token não fornecido' });
+            return;
+        }
+        // Verificar token com Firebase Admin
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const uid = decodedToken.uid;
+        const email = decodedToken.email;
+        if (!email) {
+            res.status(400).json({ success: false, error: 'Email não disponível no token' });
+            return;
+        }
+        // Adicionar como admin na coleção
+        await db.collection('admins').doc(uid).set({
+            email,
+            addedAt: admin.firestore.FieldValue.serverTimestamp(),
+            role: 'admin'
+        }, { merge: true });
+        console.log(`[bootstrapAdminHttp] Admin adicionado: ${email} (uid: ${uid})`);
+        res.status(200).json({
+            success: true,
+            uid,
+            email,
+            message: `Admin ${email} configurado com sucesso!`
+        });
+    }
+    catch (err) {
+        console.error('[bootstrapAdminHttp] Erro:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message || 'Erro ao processar'
+        });
+    }
 });
 /**
  * Verificar pagamentos expirados (executa a cada 5 minutos)
