@@ -8,7 +8,7 @@ export default function PixConfig() {
   const [message, setMessage] = useState(null);
   const [formData, setFormData] = useState({
     guaranteePercentage: 30,
-    minGuaranteeAmount: 20,
+    minGuaranteeAmount: 5,
     pixKey: '',
   });
 
@@ -108,12 +108,12 @@ export default function PixConfig() {
               name="minGuaranteeAmount"
               value={formData.minGuaranteeAmount}
               onChange={handleChange}
-              min="0"
+              min="5"
               step="0.01"
               className="w-32 bg-white border border-gray-300 rounded-lg px-4 py-2 font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <span className="text-gray-600 text-sm">
-              valor mínimo independente do percentual
+              valor mínimo independente do percentual (mínimo R$ 5,00 por restrição do Asaas)
             </span>
           </div>
         </div>

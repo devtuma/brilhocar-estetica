@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db } from '../firebase';
-import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard } from 'lucide-react';
+import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar } from 'lucide-react';
 
 export default function Admin() {
   const [appointments, setAppointments] = useState([]);
@@ -62,6 +62,15 @@ export default function Admin() {
 
       {/* Menu de Navegação CMS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <Link
+          to="/admin/horarios"
+          className="bg-surface border border-gray-800 rounded-2xl p-5 hover:border-primary/50 transition-all group"
+        >
+          <Calendar size={28} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
+          <p className="font-bold text-white">Horários</p>
+          <p className="text-xs text-gray-500 mt-1">Dias e horários disponíveis</p>
+        </Link>
+
         <Link
           to="/admin/textos"
           className="bg-surface border border-gray-800 rounded-2xl p-5 hover:border-primary/50 transition-all group"

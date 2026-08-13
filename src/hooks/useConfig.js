@@ -137,7 +137,7 @@ export function getDefaultTexts() {
 export function getDefaultPixConfig() {
   return {
     guaranteePercentage: 30,
-    minGuaranteeAmount: 20,
+    minGuaranteeAmount: 5, // Mínimo R$ 5 por restrição do Asaas sandbox
     pixKey: '',
     pixRecipientName: '',
     pixRecipientDocument: ''

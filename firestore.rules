@@ -17,27 +17,56 @@ service cloud.firestore {
 
     // ====== EMAIL LOGINS (vinculação email -> uid) ======
     match /emailLogins/{email} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
+      // Apenas o próprio user pode ler seu registro (não permite enumeração)
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
       allow update, delete: if false; // imutável
     }
 
     // ====== APPOINTMENTS ======
     match /appointments/{appointmentId} {
-      // Qualquer usuário logado pode criar
-      allow create: if request.auth != null;
-      // Ler: próprio usuário ou admin
-      allow read: if request.auth != null;
-      // Update/Delete: via Functions ou webhook do Asaas (admin)
-      allow update, delete: if false;
+      // Qualquer usuário logado pode criar seu próprio appointment
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // SEGURANÇA: Ler apenas o próprio agendamento ou admin
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        ('admin' in request.auth.token) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+      // Update: apenas o dono pode atualizar seus campos PIX OU admin
+      allow update: if request.auth != null && (
+        (resource.data.userId == request.auth.uid &&
+         request.resource.data.userId == resource.data.userId &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['pixStatus', 'updatedAt'])) ||
+        ('admin' in request.auth.token) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+      // Delete: apenas admin
+      allow delete: if request.auth != null && (
+        ('admin' in request.auth.token) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
     }
 
     // ====== CONFIG (CMS) ======
     match /config/{document=**} {
       // Textos públicos podem ser lidos por todos
       allow read: if true;
-      // Escrita: só via Functions (admin)
-      allow write: if false;
+      // Escrita: apenas admin (verificado via custom claim ou collection admins)
+      // Fallback: usuário autenticado (TODO: migrar para isAdmin() com custom claim)
+      allow write: if request.auth != null && (
+        // Admin por custom claim
+        ('admin' in request.auth.token) ||
+        // Admin por documento na coleção admins
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // ====== ADMINS (allowlist) ======
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false; // apenas via deploy manual / Cloud Function
     }
 
     // ====== ANALYTICS ======

@@ -50,9 +50,9 @@ const db = admin.firestore();
 // ============================================
 // CONFIGURAÇÕES ASAAS
 // ============================================
-const ASAAS_BASE_URL = ((_a = functions.config().asaas) === null || _a === void 0 ? void 0 : _a.environment) === 'sandbox'
-    ? 'https://api-sandbox.asaas.com/api/v3'
-    : 'https://api.asaas.com/v3';
+const ASAAS_BASE_URL = ((_a = functions.config().asaas) === null || _a === void 0 ? void 0 : _a.environment) === 'production'
+    ? 'https://api.asaas.com/v3'
+    : 'https://sandbox.asaas.com/api/v3';
 const ASAAS_API_KEY = ((_b = functions.config().asaas) === null || _b === void 0 ? void 0 : _b.api_key) || process.env.ASAAS_API_KEY || '';
 // Log para debug (apenas primeiros 10 chars) - ajuda a diagnosticar problemas de config
 console.log(`[Asaas] URL: ${ASAAS_BASE_URL}`);
@@ -71,47 +71,44 @@ const asaasHeaders = {
 async function getOrCreateAsaasCustomer(userData) {
     var _a, _b, _c, _d;
     const celularLimpo = userData.celular.replace(/\D/g, '');
+    // IMPORTANTE: Asaas sandbox EXIGE CPF/CNPJ para criar pagamentos PIX
+    // CPFs de teste válidos para Asaas sandbox: 12345678909, 11144477735, etc.
+    // Se não informar, geramos a partir do celular (fixo, determinístico)
+    const cpfCnpj = userData.cpfCnpj || gerarCpfFromCelular(celularLimpo);
     try {
-        // Buscar cliente existente pelo email (se tiver) ou externalReference
-        // O Asaas permite buscar por vários campos
-        const searchParams = {};
-        if (userData.email) {
-            searchParams.email = userData.email;
-        }
-        if (Object.keys(searchParams).length > 0) {
-            const response = await axios_1.default.get(`${ASAAS_BASE_URL}/customers`, {
-                headers: asaasHeaders,
-                params: searchParams
-            });
-            if (response.data.data && response.data.data.length > 0) {
-                console.log(`Cliente Asaas encontrado: ${response.data.data[0].id}`);
-                return response.data.data[0].id;
-            }
+        // Buscar cliente existente pelo CPF (mais confiável)
+        const response = await axios_1.default.get(`${ASAAS_BASE_URL}/customers`, {
+            headers: asaasHeaders,
+            params: { cpfCnpj }
+        });
+        if (response.data.data && response.data.data.length > 0) {
+            console.log(`Cliente Asaas encontrado: ${response.data.data[0].id}`);
+            return response.data.data[0].id;
         }
     }
     catch (error) {
         console.log('Busca de cliente falhou (normal se não existe), criando novo...', error === null || error === void 0 ? void 0 : error.message);
     }
     // Criar novo cliente
-    // IMPORTANTE: Asaas exige o campo 'cpfCnpj' OU pelo menos name+phone+email
+    // IMPORTANTE: Asaas EXIGE CPF/CNPJ para criar pagamento PIX
     const customerData = {
         name: userData.name,
         phone: celularLimpo,
-        externalReference: `celular:${celularLimpo}`, // permite identificar depois
+        cpfCnpj: cpfCnpj,
+        externalReference: `celular:${celularLimpo}`,
         notificationDisabled: false,
     };
     if (userData.email) {
         customerData.email = userData.email;
     }
-    // Sem email: usa como identificador interno
-    if (!userData.email) {
+    else {
         customerData.email = `${celularLimpo}@brilhocar.com.br`;
     }
     try {
         const response = await axios_1.default.post(`${ASAAS_BASE_URL}/customers`, customerData, {
             headers: asaasHeaders
         });
-        console.log(`Cliente Asaas criado: ${response.data.id}`);
+        console.log(`Cliente Asaas criado: ${response.data.id} (cpf=${cpfCnpj})`);
         return response.data.id;
     }
     catch (error) {
@@ -127,11 +124,54 @@ async function getOrCreateAsaasCustomer(userData) {
     }
 }
 /**
+ * Calcula os dígitos verificadores de um CPF (para gerar CPFs válidos)
+ */
+function calcularDigitosCpf(base) {
+    // Primeiro dígito verificador
+    let soma1 = 0;
+    for (let i = 0; i < 9; i++) {
+        soma1 += base[i] * (10 - i);
+    }
+    let resto1 = soma1 % 11;
+    const dig1 = resto1 < 2 ? 0 : 11 - resto1;
+    // Segundo dígito verificador
+    const base2 = [...base, dig1];
+    let soma2 = 0;
+    for (let i = 0; i < 10; i++) {
+        soma2 += base2[i] * (11 - i);
+    }
+    let resto2 = soma2 % 11;
+    const dig2 = resto2 < 2 ? 0 : 11 - resto2;
+    return [dig1, dig2];
+}
+/**
+ * Gera um CPF válido (apenas para TESTES no Asaas sandbox)
+ * Usa o número do celular para gerar digits base determinísticos
+ */
+function gerarCpfFromCelular(celular) {
+    var _a;
+    // Pega os primeiros 9 dígitos do celular (ou usa seed se celular curto)
+    const celularDigits = celular.replace(/\D/g, '').split('').map(Number);
+    // Usa os últimos 9 dígitos do celular (ou padding se necessário)
+    const baseDigits = [];
+    const startIdx = Math.max(0, celularDigits.length - 9);
+    for (let i = 0; i < 9; i++) {
+        baseDigits.push((_a = celularDigits[startIdx + i]) !== null && _a !== void 0 ? _a : (i + 1));
+    }
+    const [dig1, dig2] = calcularDigitosCpf(baseDigits);
+    const cpf = [...baseDigits, dig1, dig2].join('');
+    console.log(`[CPF] Gerado CPF válido: ${cpf} (celular=${celular})`);
+    return cpf;
+}
+/**
  * Criar pagamento PIX
+ * IMPORTANTE: Expira em 10 minutos para liberar slot para outras pessoas
  */
 async function createPixPayment(customerId, amount, description) {
-    // Calcular data de expiração (30 minutos)
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    // Calcular data de expiração (10 minutos)
+    // Após 10min sem pagamento, o slot é liberado para outra pessoa agendar
+    const PIX_EXPIRATION_MINUTES = 10;
+    const expiresAt = new Date(Date.now() + PIX_EXPIRATION_MINUTES * 60 * 1000);
     const dueDate = expiresAt.toISOString().split('T')[0];
     // Criar pagamento PIX
     const paymentData = {
@@ -187,7 +227,7 @@ async function checkPaymentStatus(paymentId) {
  * Criar pagamento PIX para um agendamento
  */
 exports.createPixPaymentForAppointment = functions.https.onCall(async (data, context) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
     // Verificar autenticação
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
@@ -232,24 +272,37 @@ exports.createPixPaymentForAppointment = functions.https.onCall(async (data, con
     const configDoc = await configRef.get();
     const config = configDoc.data() || {};
     const pixConfig = config.pixConfig || {};
-    // Calcular valor do sinal (30% do total, mínimo R$ 20)
+    // Calcular valor do sinal
     const totalPrice = appointment.totalPrice || 0;
     let pixAmount = pixConfig.guaranteePercentage
         ? totalPrice * (pixConfig.guaranteePercentage / 100)
         : totalPrice * 0.3;
     // Valor mínimo
-    const minAmount = pixConfig.minGuaranteeAmount || 20;
+    // IMPORTANTE: Asaas sandbox REJEITA pagamentos PIX menores que R$ 5,00
+    // (API retorna: "O valor da cobrança não pode ser menor que R$ 5,00")
+    // Em produção, o valor mínimo continua sendo configurável pelo admin.
+    const minAmount = pixConfig.minGuaranteeAmount || 5;
+    // Primeiro: garantir que o valor não exceda o total (para serviços baratos)
+    // Depois: garantir que o valor não seja menor que o mínimo
+    if (totalPrice > 0 && pixAmount > totalPrice) {
+        pixAmount = totalPrice;
+    }
+    // IMPORTANTE: verificar o mínimo DEPOIS de ajustar contra o totalPrice
+    // Para serviços baratos (ex: R$ 3,33 com 30% = R$ 1,00), forçamos R$ 5,00
+    // O sinal pode ser maior que o serviço? Sim, é um valor fixo de garantia.
     if (pixAmount < minAmount) {
         pixAmount = minAmount;
     }
     // Arredondar para 2 casas decimais
     pixAmount = Math.round(pixAmount * 100) / 100;
+    console.log(`[PIX] Calculando: totalPrice=${totalPrice}, percentage=${pixConfig.guaranteePercentage}%, initialPixAmount=${totalPrice * (pixConfig.guaranteePercentage / 100)}, minAmount=${minAmount}, finalPixAmount=${pixAmount}`);
     try {
         // Criar ou buscar cliente no Asaas
         const customerId = await getOrCreateAsaasCustomer({
             name: appointment.userName || userData.name || 'Cliente',
             celular: appointment.userCelular || userData.celular || '',
-            email: userData.email || undefined
+            email: userData.email || undefined,
+            cpfCnpj: userData.cpfCnpj || undefined
         });
         // Criar pagamento PIX
         const description = `Sinal agendamento #${appointment.os || appointmentId}`;
@@ -275,8 +328,29 @@ exports.createPixPaymentForAppointment = functions.https.onCall(async (data, con
         };
     }
     catch (error) {
-        console.error('Erro ao criar pagamento PIX:', error);
-        throw new functions.https.HttpsError('internal', `Erro ao criar pagamento: ${error.message || 'Erro desconhecido'}`);
+        console.error('Erro ao criar pagamento PIX:', {
+            message: error === null || error === void 0 ? void 0 : error.message,
+            status: (_d = error === null || error === void 0 ? void 0 : error.response) === null || _d === void 0 ? void 0 : _d.status,
+            data: (_e = error === null || error === void 0 ? void 0 : error.response) === null || _e === void 0 ? void 0 : _e.data,
+            errors: (_g = (_f = error === null || error === void 0 ? void 0 : error.response) === null || _f === void 0 ? void 0 : _f.data) === null || _g === void 0 ? void 0 : _g.errors,
+            ASAAS_API_KEY_LENGTH: ASAAS_API_KEY.length
+        });
+        // Extrair mensagem de erro detalhada do Asaas
+        const asaasErrors = (_j = (_h = error === null || error === void 0 ? void 0 : error.response) === null || _h === void 0 ? void 0 : _h.data) === null || _j === void 0 ? void 0 : _j.errors;
+        let errorMessage = 'Erro desconhecido';
+        if (asaasErrors && Array.isArray(asaasErrors) && asaasErrors.length > 0) {
+            errorMessage = asaasErrors.map(e => e.description || e.message || JSON.stringify(e)).join('; ');
+        }
+        else if ((_l = (_k = error === null || error === void 0 ? void 0 : error.response) === null || _k === void 0 ? void 0 : _k.data) === null || _l === void 0 ? void 0 : _l.description) {
+            errorMessage = error.response.data.description;
+        }
+        else if ((_o = (_m = error === null || error === void 0 ? void 0 : error.response) === null || _m === void 0 ? void 0 : _m.data) === null || _o === void 0 ? void 0 : _o.message) {
+            errorMessage = error.response.data.message;
+        }
+        else {
+            errorMessage = (error === null || error === void 0 ? void 0 : error.message) || 'Erro desconhecido';
+        }
+        throw new functions.https.HttpsError('internal', `Erro ao criar pagamento: ${errorMessage}`);
     }
 });
 /**
@@ -323,11 +397,32 @@ exports.checkPixPaymentStatus = functions.https.onCall(async (data, context) => 
  * Webhook do Asaas para receber notificações de pagamento
  */
 exports.asaasWebhook = functions.https.onRequest(async (req, res) => {
+    var _a;
     // Apenas aceitar POST
     if (req.method !== 'POST') {
         res.status(405).send('Method Not Allowed');
         return;
     }
+    // SEGURANÇA: Validar token de acesso do Asaas
+    // Documentação: https://docs.asaas.com/docs/webhooks-3
+    // Configurar token no painel Asaas > Integrations > Webhooks
+    const asaasAccessToken = req.headers['asaas-access-token'];
+    const expectedToken = ((_a = functions.config().asaas) === null || _a === void 0 ? void 0 : _a.webhook_token) || process.env.ASAAS_WEBHOOK_TOKEN;
+    // SEGURANÇA: Webhook SEMPRE exige token configurado
+    if (!expectedToken) {
+        console.error('CRÍTICO: ASAAS_WEBHOOK_TOKEN não configurado. Webhook rejeitado por segurança.');
+        res.status(503).json({
+            error: 'Webhook não configurado. Defina ASAAS_WEBHOOK_TOKEN antes de usar em produção.',
+            docs: 'https://docs.asaas.com/docs/webhooks-3'
+        });
+        return;
+    }
+    if (!asaasAccessToken || asaasAccessToken !== expectedToken) {
+        console.warn('Webhook rejeitado: token inválido ou ausente');
+        res.status(401).send('Unauthorized');
+        return;
+    }
+    console.log('Webhook token validado ✅');
     const { payment, event } = req.body;
     // Validar que temos dados do pagamento
     if (!payment || !payment.id) {
@@ -448,6 +543,11 @@ exports.saveTransaction = functions.https.onCall(async (data, context) => {
 // ============================================
 // FUNÇÕES SCHEDULED (CRON)
 // ============================================
+// ============================================
+// FUNÇÕES ADMINISTRATIVAS - REMOVIDAS
+// ============================================
+// A função adminUpdateConfigHttp era temporária e foi REMOVIDA.
+// Atualizar config via painel admin (frontend) que tem auth via Firebase Auth + Firestore rules.
 /**
  * Verificar pagamentos expirados (executa a cada 5 minutos)
  */

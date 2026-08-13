@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { getDefaultConfig } from '../hooks/useConfig';
+
+const DEFAULT_BUSINESS_HOURS = {
+  monday: { open: '08:00', close: '18:00', active: true },
+  tuesday: { open: '08:00', close: '18:00', active: true },
+  wednesday: { open: '08:00', close: '18:00', active: true },
+  thursday: { open: '08:00', close: '18:00', active: true },
+  friday: { open: '08:00', close: '18:00', active: true },
+  saturday: { open: '08:00', close: '14:00', active: true },
+  sunday: { open: '08:00', close: '18:00', active: false },
+};
 
 /**
  * Hook para inicializar configuração do CMS
@@ -26,6 +36,17 @@ export function useInitConfig() {
 
           await setDoc(configRef, defaultConfig);
           console.log('✅ Configuração inicial do CMS criada');
+        } else {
+          // Verificar se businessHours já existe, se não, criar
+          const data = configSnap.data();
+          if (!data.businessHours) {
+            await updateDoc(configRef, {
+              businessHours: DEFAULT_BUSINESS_HOURS,
+              updatedAt: serverTimestamp(),
+              updatedBy: 'system'
+            });
+            console.log('✅ businessHours adicionados à config existente');
+          }
         }
 
         setInitialized(true);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Clock, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 
@@ -13,26 +13,100 @@ export default function TimeSlotPicker({
   const [bookedSlots, setBookedSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTime, setSelectedTime] = useState(null);
+  const [businessHours, setBusinessHours] = useState(() => {
+    // Defaults iniciais
+    return {
+      monday: { open: '08:00', close: '18:00', active: true },
+      tuesday: { open: '08:00', close: '18:00', active: true },
+      wednesday: { open: '08:00', close: '18:00', active: true },
+      thursday: { open: '08:00', close: '18:00', active: true },
+      friday: { open: '08:00', close: '18:00', active: true },
+      saturday: { open: '08:00', close: '14:00', active: true },
+      sunday: { open: '08:00', close: '18:00', active: false },
+    };
+  });
+  const [blockedDates, setBlockedDates] = useState([]);
+  const [blockedHours, setBlockedHours] = useState({}); // horários bloqueados por dia da semana
 
-  // Gerar horários padrão (08:00 a 18:00)
+  // Gerar horários baseado na config do admin
   const generateTimeSlots = () => {
-    const slots = [];
-    for (let hour = 8; hour < 18; hour++) {
-      for (let min = 0; min < 60; min += 60) {
-        const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-        slots.push(time);
-      }
+    // Default caso config não exista (8h-18h, todos os dias)
+    const defaultHours = {
+      monday: { open: '08:00', close: '18:00', active: true },
+      tuesday: { open: '08:00', close: '18:00', active: true },
+      wednesday: { open: '08:00', close: '18:00', active: true },
+      thursday: { open: '08:00', close: '18:00', active: true },
+      friday: { open: '08:00', close: '18:00', active: true },
+      saturday: { open: '08:00', close: '14:00', active: true },
+      sunday: { open: '08:00', close: '18:00', active: false },
+    };
+    const hoursConfig = (businessHours && Object.keys(businessHours).length > 0) ? businessHours : defaultHours;
+
+    const dayOfWeek = new Date(selectedDate + 'T12:00:00').getDay();
+    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayKey = dayKeys[dayOfWeek];
+    const dayConfig = hoursConfig[dayKey];
+    const dayBlockedHours = blockedHours[dayKey] || []; // horários bloqueados para este dia
+
+    console.log('[TimeSlotPicker] generateTimeSlots:', { selectedDate, dayOfWeek, dayKey, dayConfig: JSON.stringify(dayConfig), active: dayConfig?.active });
+
+    if (!dayConfig || !dayConfig.active) {
+      return [];
     }
+
+    const slots = [];
+    const [openH, openM] = dayConfig.open.split(':').map(Number);
+    const [closeH, closeM] = dayConfig.close.split(':').map(Number);
+    const openMin = openH * 60 + openM;
+    const closeMin = closeH * 60 + closeM;
+
+    for (let m = openMin; m < closeMin; m += 60) {
+      const h = Math.floor(m / 60);
+      const min = m % 60;
+      const timeSlot = `${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+      // Pular horários bloqueados pelo admin
+      if (dayBlockedHours.includes(timeSlot)) {
+        continue;
+      }
+      slots.push(timeSlot);
+    }
+
     return slots;
   };
 
-  // Carregar horários agendados para a data
+  // Carregar config de horários + agendamentos
   useEffect(() => {
-    const loadBookedSlots = async () => {
+    const loadData = async () => {
       if (!selectedDate) return;
-
       setLoading(true);
+
       try {
+        // Buscar config (businessHours + blockedDates)
+        const configSnap = await getDoc(doc(db, 'config', 'main'));
+        if (configSnap.exists()) {
+          const data = configSnap.data();
+          if (data.businessHours) {
+            // Normalizar chaves (remover espaços extras que podem vir do Firestore)
+            const normalized = {};
+            Object.keys(data.businessHours).forEach(dayKey => {
+              const dayConfig = data.businessHours[dayKey];
+              // Chave pode vir como "active" ou "active " (com espaço)
+              const activeValue = dayConfig.active ?? dayConfig['active '];
+              normalized[dayKey] = {
+                open: dayConfig.open || dayConfig['open '] || '08:00',
+                close: dayConfig.close || dayConfig['close '] || '18:00',
+                active: activeValue === true || activeValue === 'true',
+              };
+            });
+            console.log('[TimeSlotPicker] businessHours normalizado:', normalized);
+            setBusinessHours(normalized);
+          } else {
+            console.warn('[TimeSlotPicker] config existe mas sem businessHours');
+          }
+          if (data.blockedDates) setBlockedDates(data.blockedDates);
+          if (data.blockedHours) setBlockedHours(data.blockedHours);
+        }
+
         // Buscar agendamentos do dia
         const appointmentsRef = collection(db, 'appointments');
         const q = query(
@@ -42,32 +116,48 @@ export default function TimeSlotPicker({
         );
 
         const snapshot = await getDocs(q);
+        const now = Date.now();
+        // SLOT_TIMEOUT: 10 minutos (tempo para confirmar pagamento PIX)
+        // Após esse tempo, o slot é liberado para outra pessoa marcar
+        const SLOT_HOLD_MS = 10 * 60 * 1000;
         const booked = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            time: data.time,
-            duration: data.totalDuration || 60
+          const d = doc.data();
+          const data = {
+            time: d.time,
+            duration: d.totalDuration || 60,
+            status: d.status,
+            createdAt: d.createdAt?.toMillis ? d.createdAt.toMillis() : (d.createdAt ? new Date(d.createdAt).getTime() : 0)
           };
-        });
+          return data;
+        }).filter(d => {
+          // IMPORTANTE: Slots com 'Aguardando Pagamento' só bloqueiam por 10 minutos
+          // Depois disso, o slot é LIBERADO para outra pessoa agendar
+          if (d.status === 'Aguardando Pagamento') {
+            const elapsed = now - d.createdAt;
+            if (elapsed > SLOT_HOLD_MS) {
+              console.log(`[TimeSlotPicker] Liberando slot ${d.time} (Aguardando há ${Math.round(elapsed/60000)}min)`);
+              return false; // Não conta como ocupado
+            }
+          }
+          return true; // Conta como ocupado
+        }).map(d => ({ time: d.time, duration: d.duration }));
 
         setBookedSlots(booked);
       } catch (err) {
         console.error('Erro ao carregar horários:', err);
-        // Se der erro, assumimos que não há horários ocupados
         setBookedSlots([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadBookedSlots();
+    loadData();
   }, [selectedDate]);
 
   // Verificar se um horário está disponível
   const isSlotAvailable = (time) => {
     if (bookedSlots.length === 0) return true;
 
-    // Converter horário para minutos
     const timeToMinutes = (t) => {
       const [h, m] = t.split(':').map(Number);
       return h * 60 + m;
@@ -76,12 +166,10 @@ export default function TimeSlotPicker({
     const slotStart = timeToMinutes(time);
     const slotEnd = slotStart + appointmentDuration;
 
-    // Verificar se há algum agendamento que conflita
     for (const booking of bookedSlots) {
       const bookingStart = timeToMinutes(booking.time);
       const bookingEnd = bookingStart + (booking.duration || 60);
 
-      // Verificar sobreposição
       if (slotStart < bookingEnd && slotEnd > bookingStart) {
         return false;
       }
@@ -90,16 +178,15 @@ export default function TimeSlotPicker({
     return true;
   };
 
-  // Selecionar horário
   const handleSelect = (time) => {
     if (!isSlotAvailable(time)) return;
     setSelectedTime(time);
     onSelectTime(time);
   };
 
-  // Formatar data para exibição
   const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
+    // Adicionar T12:00:00 para evitar problema de timezone UTC vs local
+    const date = new Date(dateStr + 'T12:00:00');
     return date.toLocaleDateString('pt-BR', {
       weekday: 'long',
       day: 'numeric',
@@ -107,8 +194,53 @@ export default function TimeSlotPicker({
     });
   };
 
+  // Verifica se a data está bloqueada
+  const isBlockedDate = blockedDates.includes(selectedDate);
+
+  // Se a data está bloqueada, mostra mensagem
+  if (isBlockedDate) {
+    return (
+      <div className="bg-surface border border-gray-800 rounded-2xl p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+            <Clock className="text-red-500" size={20} />
+          </div>
+          <div>
+            <h3 className="font-bold">Data Indisponível</h3>
+            <p className="text-xs text-gray-400">{formatDate(selectedDate)}</p>
+          </div>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-gray-400 mb-2">Esta data está bloqueada para agendamentos.</p>
+          <p className="text-xs text-gray-500">Por favor escolha outra data.</p>
+        </div>
+      </div>
+    );
+  }
+
   const allSlots = generateTimeSlots();
   const availableCount = allSlots.filter(t => isSlotAvailable(t)).length;
+
+  // Se não há slots (dia fechado)
+  if (allSlots.length === 0) {
+    return (
+      <div className="bg-surface border border-gray-800 rounded-2xl p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+            <Clock className="text-red-500" size={20} />
+          </div>
+          <div>
+            <h3 className="font-bold">Loja Fechada</h3>
+            <p className="text-xs text-gray-400">{formatDate(selectedDate)}</p>
+          </div>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-gray-400 mb-2">A loja não funciona neste dia da semana.</p>
+          <p className="text-xs text-gray-500">Por favor escolha outra data.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-surface border border-gray-800 rounded-2xl p-5">

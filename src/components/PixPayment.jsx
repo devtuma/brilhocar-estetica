@@ -171,15 +171,21 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
       )}
 
       {/* QR Code */}
-      {paymentData?.qrCode && (
-        <div className="bg-white rounded-3xl p-6 mb-6 flex justify-center">
-          <img
-            src={`data:image/png;base64,${paymentData.qrCode}`}
-            alt="QR Code PIX"
-            className="w-64 h-64"
-          />
-        </div>
-      )}
+      {paymentData?.qrCode && (() => {
+        // Resiliente: Asaas pode retornar base64 puro OU já com prefixo data:image/png;base64,
+        const qrSrc = paymentData.qrCode.startsWith('data:')
+          ? paymentData.qrCode
+          : `data:image/png;base64,${paymentData.qrCode}`;
+        return (
+          <div className="bg-white rounded-3xl p-6 mb-6 flex justify-center">
+            <img
+              src={qrSrc}
+              alt="QR Code PIX"
+              className="w-64 h-64"
+            />
+          </div>
+        );
+      })()}
 
       {/* Valor */}
       <div className="bg-surface border border-gray-800 rounded-2xl p-6 mb-6 text-center">

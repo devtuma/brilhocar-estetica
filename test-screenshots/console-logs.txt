@@ -1,0 +1,5 @@
+[log] [TimeSlotPicker] generateTimeSlots: {selectedDate: 2026-08-14, dayOfWeek: 5, dayKey: friday, dayConfig: {"open":"08:00","close":"18:00","active":true}, active: true}
+[log] [TimeSlotPicker] businessHours normalizado: {sunday: Object, tuesday: Object, thursday: Object, friday: Object, wednesday: Object}
+[log] [TimeSlotPicker] generateTimeSlots: {selectedDate: 2026-08-14, dayOfWeek: 5, dayKey: friday, dayConfig: {"open":"08:00","close":"18:00","active":true}, active: true}
+[error] Erro ao carregar horários: FirebaseError: Missing or insufficient permissions.
+[log] [TimeSlotPicker] generateTimeSlots: {selectedDate: 2026-08-14, dayOfWeek: 5, dayKey: friday, dayConfig: {"open":"08:00","close":"18:00","active":true}, active: true}

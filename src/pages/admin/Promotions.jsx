@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Gift, Calendar, Percent, Eye, EyeOff, Trash2, Plus, Save, Loader2 } from 'lucide-react';
@@ -79,7 +79,7 @@ export default function Promotions() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   // Carregar promoção atual
-  useState(() => {
+  useEffect(() => {
     const loadPromotion = async () => {
       try {
         const { getDoc } = await import('firebase/firestore');

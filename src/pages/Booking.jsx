@@ -133,9 +133,12 @@ export default function Booking() {
       os: osNumber,
       userId: user ? user.uid : null,
       userCelular: formData.celular || '',
-      status: 'Agendado',
+      // IMPORTANTE: status inicia como 'Aguardando Pagamento'
+      // Só vira 'Agendado' quando o PIX é confirmado via webhook do Asaas
+      status: 'Aguardando Pagamento',
+      pixStatus: 'pending',
       createdAt: serverTimestamp(),
-      timeline: [{ status: 'Agendado', date: new Date().toISOString() }]
+      timeline: [{ status: 'Aguardando Pagamento', date: new Date().toISOString(), note: 'Aguardando pagamento do sinal PIX' }]
     };
 
     try {
