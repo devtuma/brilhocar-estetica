@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Loader2, Save, Eye, Edit3 } from 'lucide-react';
 
@@ -23,7 +23,7 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
     const loadConfig = async () => {
       try {
         const configRef = doc(db, 'config', 'main');
-        const configSnap = await import('firebase/firestore').then(m => m.getDoc(configRef));
+        const configSnap = await getDoc(configRef);
 
         if (configSnap.exists()) {
           const texts = configSnap.data().texts || {};
@@ -41,6 +41,14 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
           if (configSnap.data().updatedAt) {
             setLastSaved(configSnap.data().updatedAt);
           }
+        } else {
+          // Se não existe, criar com valores vazios
+          const initialValues = {};
+          fields.forEach(field => {
+            initialValues[field.key] = '';
+          });
+          setValues(initialValues);
+          setOriginalValues(initialValues);
         }
       } catch (err) {
         console.error('Erro ao carregar config:', err);
@@ -48,7 +56,7 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
     };
 
     loadConfig();
-  }, [sectionKey]);
+  }, [sectionKey, fields]);
 
   const hasChanges = JSON.stringify(values) !== JSON.stringify(originalValues);
 
@@ -64,7 +72,6 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
       const configRef = doc(db, 'config', 'main');
 
       // Buscar config atual
-      const { getDoc } = await import('firebase/firestore');
       const configSnap = await getDoc(configRef);
       const currentData = configSnap.exists() ? configSnap.data() : {};
       const currentTexts = currentData.texts || {};

@@ -1,16 +1,39 @@
-import { useState } from 'react';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Save, CreditCard, Lock, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function PixConfig() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [formData, setFormData] = useState({
     guaranteePercentage: 30,
     minGuaranteeAmount: 5,
     pixKey: '',
   });
+
+  // Carregar config existente
+  useEffect(() => {
+    const configRef = doc(db, 'config', 'main');
+    const unsubscribe = onSnapshot(configRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.pixConfig) {
+          setFormData({
+            guaranteePercentage: data.pixConfig.guaranteePercentage || 30,
+            minGuaranteeAmount: data.pixConfig.minGuaranteeAmount || 5,
+            pixKey: data.pixConfig.pixKey || '',
+          });
+        }
+      }
+      setLoading(false);
+    }, (err) => {
+      console.error('Erro ao carregar config:', err);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,10 +47,11 @@ export default function PixConfig() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
     setMessage(null);
 
     try {
+      const { updateDoc, serverTimestamp } = await import('firebase/firestore');
       const configRef = doc(db, 'config', 'main');
       await updateDoc(configRef, {
         pixConfig: {
@@ -44,7 +68,7 @@ export default function PixConfig() {
       console.error('Erro ao salvar:', error);
       setMessage({ type: 'error', text: 'Erro ao salvar configurações.' });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
