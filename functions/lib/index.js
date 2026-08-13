@@ -54,6 +54,9 @@ const ASAAS_BASE_URL = ((_a = functions.config().asaas) === null || _a === void 
     ? 'https://api-sandbox.asaas.com/api/v3'
     : 'https://api.asaas.com/v3';
 const ASAAS_API_KEY = ((_b = functions.config().asaas) === null || _b === void 0 ? void 0 : _b.api_key) || process.env.ASAAS_API_KEY || '';
+// Log para debug (apenas primeiros 10 chars) - ajuda a diagnosticar problemas de config
+console.log(`[Asaas] URL: ${ASAAS_BASE_URL}`);
+console.log(`[Asaas] API Key presente: ${ASAAS_API_KEY ? 'SIM (length=' + ASAAS_API_KEY.length + ')' : 'NÃO - VAZIO!'}`);
 // Headers para API Asaas
 const asaasHeaders = {
     'access_token': ASAAS_API_KEY,
@@ -66,29 +69,43 @@ const asaasHeaders = {
  * Criar ou buscar cliente no Asaas
  */
 async function getOrCreateAsaasCustomer(userData) {
-    var _a;
+    var _a, _b, _c, _d;
     const celularLimpo = userData.celular.replace(/\D/g, '');
     try {
-        // Buscar cliente existente pelo telefone
-        const response = await axios_1.default.get(`${ASAAS_BASE_URL}/customers`, {
-            headers: asaasHeaders,
-            params: { phone: celularLimpo }
-        });
-        if (response.data.data && response.data.data.length > 0) {
-            console.log(`Cliente Asaas encontrado: ${response.data.data[0].id}`);
-            return response.data.data[0].id;
+        // Buscar cliente existente pelo email (se tiver) ou externalReference
+        // O Asaas permite buscar por vários campos
+        const searchParams = {};
+        if (userData.email) {
+            searchParams.email = userData.email;
+        }
+        if (Object.keys(searchParams).length > 0) {
+            const response = await axios_1.default.get(`${ASAAS_BASE_URL}/customers`, {
+                headers: asaasHeaders,
+                params: searchParams
+            });
+            if (response.data.data && response.data.data.length > 0) {
+                console.log(`Cliente Asaas encontrado: ${response.data.data[0].id}`);
+                return response.data.data[0].id;
+            }
         }
     }
     catch (error) {
-        console.log('Cliente não encontrado, criando novo...', error === null || error === void 0 ? void 0 : error.message);
+        console.log('Busca de cliente falhou (normal se não existe), criando novo...', error === null || error === void 0 ? void 0 : error.message);
     }
     // Criar novo cliente
+    // IMPORTANTE: Asaas exige o campo 'cpfCnpj' OU pelo menos name+phone+email
     const customerData = {
         name: userData.name,
         phone: celularLimpo,
+        externalReference: `celular:${celularLimpo}`, // permite identificar depois
+        notificationDisabled: false,
     };
     if (userData.email) {
         customerData.email = userData.email;
+    }
+    // Sem email: usa como identificador interno
+    if (!userData.email) {
+        customerData.email = `${celularLimpo}@brilhocar.com.br`;
     }
     try {
         const response = await axios_1.default.post(`${ASAAS_BASE_URL}/customers`, customerData, {
@@ -98,8 +115,15 @@ async function getOrCreateAsaasCustomer(userData) {
         return response.data.id;
     }
     catch (error) {
-        console.error('Erro ao criar cliente Asaas:', ((_a = error === null || error === void 0 ? void 0 : error.response) === null || _a === void 0 ? void 0 : _a.data) || (error === null || error === void 0 ? void 0 : error.message));
-        throw new Error('Falha ao criar cliente no Asaas');
+        const status = (_a = error === null || error === void 0 ? void 0 : error.response) === null || _a === void 0 ? void 0 : _a.status;
+        const errorBody = (_b = error === null || error === void 0 ? void 0 : error.response) === null || _b === void 0 ? void 0 : _b.data;
+        console.error('Erro ao criar cliente Asaas:', {
+            status,
+            body: errorBody,
+            message: error === null || error === void 0 ? void 0 : error.message,
+            sentData: customerData
+        });
+        throw new Error(`Falha ao criar cliente no Asaas (${status}): ${JSON.stringify(((_d = (_c = errorBody === null || errorBody === void 0 ? void 0 : errorBody.errors) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.description) || errorBody || (error === null || error === void 0 ? void 0 : error.message))}`);
     }
 }
 /**

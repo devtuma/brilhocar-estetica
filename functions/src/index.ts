@@ -19,6 +19,10 @@ const ASAAS_BASE_URL = functions.config().asaas?.environment === 'sandbox'
 
 const ASAAS_API_KEY = functions.config().asaas?.api_key || process.env.ASAAS_API_KEY || '';
 
+// Log para debug (apenas primeiros 10 chars) - ajuda a diagnosticar problemas de config
+console.log(`[Asaas] URL: ${ASAAS_BASE_URL}`);
+console.log(`[Asaas] API Key presente: ${ASAAS_API_KEY ? 'SIM (length=' + ASAAS_API_KEY.length + ')' : 'NÃO - VAZIO!'}`);
+
 // Headers para API Asaas
 const asaasHeaders = {
   'access_token': ASAAS_API_KEY,
@@ -34,6 +38,8 @@ interface AsaasCustomer {
   email: string | null;
   phone: string | null;
   cpfCnpj: string | null;
+  externalReference?: string | null;
+  notificationDisabled?: boolean;
 }
 
 interface AsaasPayment {
@@ -77,28 +83,44 @@ async function getOrCreateAsaasCustomer(userData: {
   const celularLimpo = userData.celular.replace(/\D/g, '');
 
   try {
-    // Buscar cliente existente pelo telefone
-    const response = await axios.get(`${ASAAS_BASE_URL}/customers`, {
-      headers: asaasHeaders,
-      params: { phone: celularLimpo }
-    });
+    // Buscar cliente existente pelo email (se tiver) ou externalReference
+    // O Asaas permite buscar por vários campos
+    const searchParams: any = {};
+    if (userData.email) {
+      searchParams.email = userData.email;
+    }
 
-    if (response.data.data && response.data.data.length > 0) {
-      console.log(`Cliente Asaas encontrado: ${response.data.data[0].id}`);
-      return response.data.data[0].id;
+    if (Object.keys(searchParams).length > 0) {
+      const response = await axios.get(`${ASAAS_BASE_URL}/customers`, {
+        headers: asaasHeaders,
+        params: searchParams
+      });
+
+      if (response.data.data && response.data.data.length > 0) {
+        console.log(`Cliente Asaas encontrado: ${response.data.data[0].id}`);
+        return response.data.data[0].id;
+      }
     }
   } catch (error: any) {
-    console.log('Cliente não encontrado, criando novo...', error?.message);
+    console.log('Busca de cliente falhou (normal se não existe), criando novo...', error?.message);
   }
 
   // Criar novo cliente
+  // IMPORTANTE: Asaas exige o campo 'cpfCnpj' OU pelo menos name+phone+email
   const customerData: Partial<AsaasCustomer> = {
     name: userData.name,
     phone: celularLimpo,
+    externalReference: `celular:${celularLimpo}`, // permite identificar depois
+    notificationDisabled: false,
   };
 
   if (userData.email) {
     customerData.email = userData.email;
+  }
+
+  // Sem email: usa como identificador interno
+  if (!userData.email) {
+    customerData.email = `${celularLimpo}@brilhocar.com.br`;
   }
 
   try {
@@ -108,8 +130,15 @@ async function getOrCreateAsaasCustomer(userData: {
     console.log(`Cliente Asaas criado: ${response.data.id}`);
     return response.data.id;
   } catch (error: any) {
-    console.error('Erro ao criar cliente Asaas:', error?.response?.data || error?.message);
-    throw new Error('Falha ao criar cliente no Asaas');
+    const status = error?.response?.status;
+    const errorBody = error?.response?.data;
+    console.error('Erro ao criar cliente Asaas:', {
+      status,
+      body: errorBody,
+      message: error?.message,
+      sentData: customerData
+    });
+    throw new Error(`Falha ao criar cliente no Asaas (${status}): ${JSON.stringify(errorBody?.errors?.[0]?.description || errorBody || error?.message)}`);
   }
 }
 
