@@ -12,6 +12,7 @@ import AdminSiteTexts from './pages/admin/SiteTexts';
 import AdminPromotions from './pages/admin/Promotions';
 import AdminPixConfig from './pages/admin/PixConfig';
 import AdminSchedule from './pages/admin/Schedule';
+import AdminServices from './pages/admin/Services';
 import Login from './pages/Login';
 import Track from './pages/Track';
 import ClientLogin from './pages/ClientLogin';
@@ -173,6 +174,7 @@ function App() {
         <Route path="/admin/promocoes" element={<ProtectedRoute><AdminLayout><AdminPromotions /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/pix" element={<ProtectedRoute><AdminLayout><AdminPixConfig /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/horarios" element={<ProtectedRoute><AdminLayout><AdminSchedule /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/servicos" element={<ProtectedRoute><AdminLayout><AdminServices /></AdminLayout></ProtectedRoute>} />
         <Route path="/checkin" element={<ProtectedRoute><AdminLayout><Checkin /></AdminLayout></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>

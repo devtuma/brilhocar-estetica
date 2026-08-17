@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db, auth } from '../firebase';
-import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle } from 'lucide-react';
+import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle, Sparkles } from 'lucide-react';
 
 export default function Admin() {
   const [appointments, setAppointments] = useState([]);
@@ -176,6 +176,15 @@ export default function Admin() {
           <Calendar size={28} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
           <p className="font-bold text-white">Horários</p>
           <p className="text-xs text-gray-500 mt-1">Dias e horários disponíveis</p>
+        </Link>
+
+        <Link
+          to="/admin/servicos"
+          className="bg-surface border border-gray-800 rounded-2xl p-5 hover:border-primary/50 transition-all group"
+        >
+          <Sparkles size={28} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
+          <p className="font-bold text-white">Serviços</p>
+          <p className="text-xs text-gray-500 mt-1">Preços, duração e descrição</p>
         </Link>
 
         <Link

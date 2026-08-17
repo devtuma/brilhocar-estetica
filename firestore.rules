@@ -97,7 +97,11 @@ service cloud.firestore {
     // ====== SERVICES ======
     match /services/{serviceId} {
       allow read: if true;
-      allow write: if false; // via Functions ou admin
+      // Admin pode criar, atualizar e deletar
+      allow write: if request.auth != null && (
+        ('admin' in request.auth.token) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
     }
 
     // ====== TESTIMONIALS ======

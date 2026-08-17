@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Plus, Car, AlertCircle } from 'lucide-react';
 import VehiclePicker from '../components/VehiclePicker';
 import TimeSlotPicker from '../components/TimeSlotPicker';
 
-const servicesList = [
-  { id: 'lavagem-tecnica', name: 'Lavagem Técnica', price: 1 },
-  { id: 'lavagem-detalhada', name: 'Lavagem Detalhada', price: 1 },
-  { id: 'polimento-tecnico', name: 'Polimento Técnico', price: 1 },
-  { id: 'vitrificacao', name: 'Vitrificação', price: 1 },
-  { id: 'higienizacao-interna', name: 'Higienização Interna', price: 1 },
-  { id: 'tratamento-vidros', name: 'Tratamento de Vidros', price: 1 },
+// Serviços agora vêm do Firestore (collection: services)
+// Default fallback caso não tenha nenhum cadastrado
+const DEFAULT_SERVICES = [
+  { id: 'lavagem-tecnica', name: 'Lavagem Técnica', price: 1, duration: 60 },
+  { id: 'lavagem-detalhada', name: 'Lavagem Detalhada', price: 1, duration: 90 },
+  { id: 'polimento-tecnico', name: 'Polimento Técnico', price: 1, duration: 180 },
+  { id: 'vitrificacao', name: 'Vitrificação', price: 1, duration: 240 },
+  { id: 'higienizacao-interna', name: 'Higienização Interna', price: 1, duration: 120 },
+  { id: 'tratamento-vidros', name: 'Tratamento de Vidros', price: 1, duration: 60 },
 ];
 
 export default function Booking() {
@@ -30,6 +32,29 @@ export default function Booking() {
   const [showTimeSlotPicker, setShowTimeSlotPicker] = useState(false);
   const [carroError, setCarroError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [servicesList, setServicesList] = useState(DEFAULT_SERVICES);
+
+  // Carregar serviços do Firestore em tempo real
+  useEffect(() => {
+    const servicesRef = collection(db, 'services');
+    const unsubscribe = onSnapshot(servicesRef, (snap) => {
+      if (!snap.empty) {
+        const data = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          price: doc.data().basePrice || 0,
+          duration: doc.data().duration || 60
+        })).filter(s => s.active !== false);
+        setServicesList(data);
+      } else {
+        setServicesList(DEFAULT_SERVICES);
+      }
+    }, (err) => {
+      console.warn('Erro ao carregar serviços, usando defaults:', err);
+      setServicesList(DEFAULT_SERVICES);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (initialService) {
