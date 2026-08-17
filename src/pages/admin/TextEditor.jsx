@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Loader2, Save, Eye, Edit3 } from 'lucide-react';
@@ -16,11 +16,19 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [loadingSection, setLoadingSection] = useState(true);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  // Carregar valores atuais
+  // Referência para evitar carregar 2x
+  const loadedSectionRef = useRef(null);
+
+  // Carregar valores quando mudar a seção
   useEffect(() => {
+    // Evitar carregar a mesma seção várias vezes
+    if (loadedSectionRef.current === sectionKey) return;
+
     const loadConfig = async () => {
+      setLoadingSection(true);
       try {
         const configRef = doc(db, 'config', 'main');
         const configSnap = await getDoc(configRef);
@@ -31,18 +39,18 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
 
           const initialValues = {};
           fields.forEach(field => {
-            initialValues[field.key] = section[field.key] || '';
+            // Mostrar valor atual OU placeholder se vazio
+            initialValues[field.key] = section[field.key] !== undefined ? section[field.key] : '';
           });
 
           setValues(initialValues);
           setOriginalValues(initialValues);
 
-          // Buscar última atualização
           if (configSnap.data().updatedAt) {
             setLastSaved(configSnap.data().updatedAt);
           }
         } else {
-          // Se não existe, criar com valores vazios
+          // Se não existe config, criar com valores vazios
           const initialValues = {};
           fields.forEach(field => {
             initialValues[field.key] = '';
@@ -50,13 +58,16 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
           setValues(initialValues);
           setOriginalValues(initialValues);
         }
+        loadedSectionRef.current = sectionKey;
       } catch (err) {
         console.error('Erro ao carregar config:', err);
+      } finally {
+        setLoadingSection(false);
       }
     };
 
     loadConfig();
-  }, [sectionKey, fields]);
+  }, [sectionKey]); // Apenas sectionKey nas deps
 
   const hasChanges = JSON.stringify(values) !== JSON.stringify(originalValues);
 
@@ -176,6 +187,12 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
       {/* Campos de edição */}
       {!preview && (
         <div className="space-y-4">
+          {loadingSection && (
+            <div className="flex items-center gap-2 text-gray-400 text-sm">
+              <Loader2 size={16} className="animate-spin" />
+              Carregando textos salvos...
+            </div>
+          )}
           {fields.map(field => (
             <div key={field.key}>
               <label className="block text-sm font-bold text-gray-400 mb-2">
@@ -187,7 +204,7 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
                   onChange={(e) => handleChange(field.key, e.target.value)}
                   className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white focus:outline-none focus:border-primary transition-colors resize-none"
                   rows={field.rows || 4}
-                  placeholder={field.placeholder || ''}
+                  placeholder={field.placeholder || `Digite ${field.label.toLowerCase()}...`}
                 />
               ) : field.type === 'image' ? (
                 <div>
@@ -213,7 +230,7 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
                   value={values[field.key] || ''}
                   onChange={(e) => handleChange(field.key, e.target.value)}
                   className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white focus:outline-none focus:border-primary transition-colors"
-                  placeholder={field.placeholder || ''}
+                  placeholder={field.placeholder || `Digite ${field.label.toLowerCase()}...`}
                 />
               )}
             </div>

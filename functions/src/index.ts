@@ -786,6 +786,121 @@ export const bootstrapAdminHttp = functions.https.onRequest((req, res) => {
 });
 
 /**
+ * Seed Services - Cria serviços padrão se a collection estiver vazia
+ * Disponível apenas para admin
+ */
+export const seedServices = functions.https.onCall(async (_data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+  }
+
+  // Verificar se é admin
+  const adminDoc = await db.collection('admins').doc(context.auth.uid).get();
+  if (!adminDoc.exists && context.auth.token.admin !== true) {
+    throw new functions.https.HttpsError('permission-denied', 'Apenas admin pode executar');
+  }
+
+  // Verificar se já tem serviços
+  const existing = await db.collection('services').get();
+  if (!existing.empty) {
+    return {
+      success: false,
+      message: `Já existem ${existing.size} serviços cadastrados. Nenhum criado.`
+    };
+  }
+
+  // Serviços padrão
+  const defaultServices = [
+    {
+      id: 'lavagem-tecnica',
+      name: 'Lavagem Técnica',
+      description: 'Lavagem completa externa com produtos de alta performance',
+      basePrice: 80,
+      duration: 60,
+      icon: 'Droplet',
+      active: true,
+      featured: true,
+      order: 1
+    },
+    {
+      id: 'lavagem-detalhada',
+      name: 'Lavagem Detalhada',
+      description: 'Lavagem minuciosa incluindo motor, rodas e detalhamento interno',
+      basePrice: 150,
+      duration: 90,
+      icon: 'Sparkles',
+      active: true,
+      featured: false,
+      order: 2
+    },
+    {
+      id: 'polimento-tecnico',
+      name: 'Polimento Técnico',
+      description: 'Polimento profissional para remoção de riscos e oxidação',
+      basePrice: 350,
+      duration: 180,
+      icon: 'Sun',
+      active: true,
+      featured: true,
+      order: 3
+    },
+    {
+      id: 'vitrificacao',
+      name: 'Vitrificação',
+      description: 'Vitrificação cerâmica com proteção de até 2 anos',
+      basePrice: 1200,
+      duration: 240,
+      icon: 'Shield',
+      active: true,
+      featured: true,
+      order: 4
+    },
+    {
+      id: 'higienizacao-interna',
+      name: 'Higienização Interna',
+      description: 'Limpeza profunda de bancos, carpetes e painel',
+      basePrice: 200,
+      duration: 120,
+      icon: 'Star',
+      active: true,
+      featured: false,
+      order: 5
+    },
+    {
+      id: 'tratamento-vidros',
+      name: 'Tratamento de Vidros',
+      description: 'Vidrificação de vidros com proteção UV e repelente',
+      basePrice: 120,
+      duration: 60,
+      icon: 'Shield',
+      active: true,
+      featured: false,
+      order: 6
+    }
+  ];
+
+  const batch = db.batch();
+  defaultServices.forEach(service => {
+    const ref = db.collection('services').doc(service.id);
+    batch.set(ref, {
+      ...service,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  });
+
+  await batch.commit();
+
+  console.log(`[seedServices] ${defaultServices.length} serviços padrão criados`);
+
+  return {
+    success: true,
+    message: `${defaultServices.length} serviços padrão criados com sucesso!`,
+    count: defaultServices.length
+  };
+});
+
+/**
  * Verificar pagamentos expirados (executa a cada 5 minutos)
  */
 export const checkExpiredPayments = functions.pubsub

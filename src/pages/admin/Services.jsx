@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { collection, doc, onSnapshot, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase';
-import { Save, Sparkles, Clock, DollarSign, Edit3, Trash2, Plus, CheckCircle, AlertCircle, Loader2, Tag } from 'lucide-react';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '../../firebase';
+import { Save, Sparkles, Clock, DollarSign, Edit3, Trash2, Plus, CheckCircle, AlertCircle, Loader2, Tag, Database } from 'lucide-react';
 
 const ICONES_DISPONIVEIS = ['Car', 'Sparkles', 'Droplet', 'Sun', 'Shield', 'Star', 'Wrench', 'Crown'];
 const DURACAO_PREDEFINIDA = [30, 45, 60, 90, 120, 150, 180, 240];
@@ -10,6 +11,7 @@ export default function Services() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const [message, setMessage] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [newService, setNewService] = useState(null);
@@ -104,6 +106,21 @@ export default function Services() {
     });
   };
 
+  const handleSeedServices = async () => {
+    if (!confirm('Criar serviços padrão? Isso só funciona se não existir nenhum serviço cadastrado.')) return;
+    setSeeding(true);
+    try {
+      const fn = httpsCallable(functions, 'seedServices');
+      const result = await fn({});
+      setMessage({ type: result.data.success ? 'success' : 'error', text: result.data.message });
+    } catch (err) {
+      console.error('Erro no seed:', err);
+      setMessage({ type: 'error', text: err.message || 'Erro ao criar serviços padrão' });
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -124,6 +141,15 @@ export default function Services() {
             Gerencie os serviços oferecidos, preços e tempo de execução
           </p>
         </div>
+        <button
+          onClick={handleSeedServices}
+          disabled={seeding}
+          className="bg-gray-800 text-white font-bold px-4 py-3 rounded-xl hover:bg-gray-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+          title="Criar serviços padrão (só funciona se não houver nenhum)"
+        >
+          {seeding ? <Loader2 size={20} className="animate-spin" /> : <Database size={20} />}
+          <span className="hidden md:inline">Popular Padrão</span>
+        </button>
         <button
           onClick={handleAddNew}
           className="bg-primary text-black font-bold px-6 py-3 rounded-xl hover:bg-[#00c853] transition-colors flex items-center gap-2"
