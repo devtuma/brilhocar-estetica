@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, deleteDoc, addDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db, auth } from '../firebase';
-import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle, Sparkles } from 'lucide-react';
+import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle, Sparkles, Trash2, X, FileText } from 'lucide-react';
 
 export default function Admin() {
   const [appointments, setAppointments] = useState([]);
@@ -90,6 +90,53 @@ export default function Admin() {
       });
     } catch (err) {
       alert('Erro ao atualizar status');
+    }
+  };
+
+  const handleDelete = async (app) => {
+    const reason = prompt(
+      `Excluir agendamento ${app.os}?\n\nMotivo (opcional):`,
+      ''
+    );
+    if (reason === null) return; // cancelou
+
+    try {
+      // 1. Salvar log ANTES de deletar
+      await addDoc(collection(db, 'audit_logs'), {
+        type: 'appointment_deleted',
+        appointmentId: app.id,
+        appointmentData: {
+          os: app.os,
+          userId: app.userId,
+          userName: app.name,
+          userCelular: app.userCelular,
+          userEmail: app.userEmail || null,
+          car: app.car,
+          plate: app.plate,
+          services: app.services,
+          totalPrice: app.totalPrice,
+          totalDuration: app.totalDuration,
+          date: app.date,
+          time: app.time,
+          status: app.status,
+          pixStatus: app.pixStatus,
+          pixAmount: app.pixAmount,
+          pixPaymentId: app.pixPaymentId,
+          createdAt: app.createdAt,
+        },
+        reason: reason || 'Não informado',
+        deletedBy: auth.currentUser?.uid || 'admin',
+        deletedByEmail: auth.currentUser?.email || 'admin',
+        deletedAt: serverTimestamp(),
+      });
+
+      // 2. Deletar o agendamento
+      await deleteDoc(doc(db, 'appointments', app.id));
+
+      alert(`Agendamento ${app.os} removido e registrado no histórico.`);
+    } catch (err) {
+      console.error('Erro ao deletar:', err);
+      alert('Erro ao deletar agendamento. Verifique permissões.');
     }
   };
 
@@ -214,17 +261,41 @@ export default function Admin() {
           <p className="text-xs text-gray-500 mt-1">Gateway de pagamento</p>
         </Link>
 
-        <div className="bg-surface border border-gray-800 rounded-2xl p-5 opacity-60 cursor-not-allowed">
-          <TrendingUp size={28} className="text-gray-600 mb-3" />
-          <p className="font-bold text-gray-500">Analytics</p>
-          <p className="text-xs text-gray-600 mt-1">Em breve</p>
-        </div>
+        <Link
+          to="/admin/analytics"
+          className="bg-surface border border-gray-800 rounded-2xl p-5 hover:border-primary/50 transition-all group"
+        >
+          <TrendingUp size={28} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
+          <p className="font-bold text-white">Analytics</p>
+          <p className="text-xs text-gray-500 mt-1">Métricas e gráficos</p>
+        </Link>
 
-        <div className="bg-surface border border-gray-800 rounded-2xl p-5 opacity-60 cursor-not-allowed">
-          <Settings size={28} className="text-gray-600 mb-3" />
-          <p className="font-bold text-gray-500">Configurações</p>
-          <p className="text-xs text-gray-600 mt-1">Em breve</p>
-        </div>
+        <Link
+          to="/admin/historico"
+          className="bg-surface border border-gray-800 rounded-2xl p-5 hover:border-primary/50 transition-all group"
+        >
+          <FileText size={28} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
+          <p className="font-bold text-white">Histórico</p>
+          <p className="text-xs text-gray-500 mt-1">Logs e exclusões</p>
+        </Link>
+
+        <Link
+          to="/admin/reagendamentos"
+          className="bg-surface border border-gray-800 rounded-2xl p-5 hover:border-primary/50 transition-all group"
+        >
+          <RefreshCcw size={28} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
+          <p className="font-bold text-white">Reagendamentos</p>
+          <p className="text-xs text-gray-500 mt-1">Pedidos pendentes</p>
+        </Link>
+
+        <Link
+          to="/admin/configuracoes"
+          className="bg-surface border border-gray-800 rounded-2xl p-5 hover:border-primary/50 transition-all group"
+        >
+          <Settings size={28} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
+          <p className="font-bold text-white">Configurações</p>
+          <p className="text-xs text-gray-500 mt-1">Regras do sistema</p>
+        </Link>
       </div>
 
       {/* Stats */}
@@ -289,18 +360,27 @@ export default function Admin() {
                     </span>
                   </td>
                   <td className="p-4">
-                    <select
-                      value={app.status}
-                      onChange={(e) => updateStatus(app.id, e.target.value)}
-                      className="bg-transparent border-none font-semibold text-gray-700 cursor-pointer focus:outline-none focus:ring-0 text-sm"
-                    >
-                      <option value="Aguardando Pagamento">Aguardando Pgto</option>
-                      <option value="Agendado">Agendado</option>
-                      <option value="Veículo Recebido">Recebido</option>
-                      <option value="Serviço Iniciado">Iniciar</option>
-                      <option value="Finalizado">Pronto</option>
-                      <option value="Entregue">Finalizar</option>
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={app.status}
+                        onChange={(e) => updateStatus(app.id, e.target.value)}
+                        className="bg-transparent border-none font-semibold text-gray-700 cursor-pointer focus:outline-none focus:ring-0 text-sm"
+                      >
+                        <option value="Aguardando Pagamento">Aguardando Pgto</option>
+                        <option value="Agendado">Agendado</option>
+                        <option value="Veículo Recebido">Recebido</option>
+                        <option value="Serviço Iniciado">Iniciar</option>
+                        <option value="Finalizado">Pronto</option>
+                        <option value="Entregue">Finalizar</option>
+                      </select>
+                      <button
+                        onClick={() => handleDelete(app)}
+                        title="Excluir agendamento (será registrado no histórico)"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

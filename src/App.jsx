@@ -13,6 +13,10 @@ import AdminPromotions from './pages/admin/Promotions';
 import AdminPixConfig from './pages/admin/PixConfig';
 import AdminSchedule from './pages/admin/Schedule';
 import AdminServices from './pages/admin/Services';
+import AdminAnalytics from './pages/admin/Analytics';
+import AdminHistorico from './pages/admin/Historico';
+import AdminReagendamentos from './pages/admin/Reagendamentos';
+import AdminConfiguracoes from './pages/admin/Configuracoes';
 import Login from './pages/Login';
 import Track from './pages/Track';
 import ClientLogin from './pages/ClientLogin';
@@ -175,6 +179,10 @@ function App() {
         <Route path="/admin/pix" element={<ProtectedRoute><AdminLayout><AdminPixConfig /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/horarios" element={<ProtectedRoute><AdminLayout><AdminSchedule /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/servicos" element={<ProtectedRoute><AdminLayout><AdminServices /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/analytics" element={<ProtectedRoute><AdminLayout><AdminAnalytics /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/historico" element={<ProtectedRoute><AdminLayout><AdminHistorico /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/reagendamentos" element={<ProtectedRoute><AdminLayout><AdminReagendamentos /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/configuracoes" element={<ProtectedRoute><AdminLayout><AdminConfiguracoes /></AdminLayout></ProtectedRoute>} />
         <Route path="/checkin" element={<ProtectedRoute><AdminLayout><Checkin /></AdminLayout></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>

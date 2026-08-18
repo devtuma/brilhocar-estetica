@@ -124,8 +124,27 @@ service cloud.firestore {
 
     // ====== AUDIT LOGS ======
     match /audit_logs/{logId} {
-      allow read, create: if request.auth != null;
-      allow update, delete: if false;
+      // Apenas admins podem ler e criar logs
+      allow read, create: if request.auth != null && (
+        ('admin' in request.auth.token) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+      allow update, delete: if false; // imutável
+    }
+
+    // ====== REAGENDAMENTOS (solicitações) ======
+    match /reschedule_requests/{requestId} {
+      allow create: if request.auth != null &&
+        request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        ('admin' in request.auth.token) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+      allow update, delete: if request.auth != null && (
+        ('admin' in request.auth.token) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
     }
 
     // ====== CLIENTS (legacy - migrar para users) ======

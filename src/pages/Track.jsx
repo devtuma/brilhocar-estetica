@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { Search, Car, AlertCircle, Loader2, QrCode, X, MessageCircle } from 'lucide-react';
+import { Search, Car, AlertCircle, Loader2, QrCode, X, MessageCircle, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import QRCode from 'react-qr-code';
+import RescheduleModal from '../components/RescheduleModal';
 
 export default function Track() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [appointments, setAppointments] = useState([]);
   const [qrModal, setQrModal] = useState(null); // {os, id} quando aberto
+  const [rescheduleModal, setRescheduleModal] = useState(null);
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -161,6 +163,14 @@ export default function Track() {
                   >
                     <QrCode size={18} /> Mostrar QR Code
                   </button>
+                  {appointment.pixStatus === 'paid' && appointment.status !== 'Entregue' && appointment.status !== 'Finalizado' && appointment.status !== 'Cancelado' && (
+                    <button
+                      onClick={() => setRescheduleModal(appointment)}
+                      className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-bold px-4 py-2 rounded-xl hover:bg-yellow-500/20 transition-colors flex items-center gap-2"
+                    >
+                      <Calendar size={18} /> Reagendar
+                    </button>
+                  )}
                 </div>
 
                 {/* Timeline */}
@@ -247,6 +257,14 @@ export default function Track() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Reagendamento */}
+      {rescheduleModal && (
+        <RescheduleModal
+          appointment={rescheduleModal}
+          onClose={() => setRescheduleModal(null)}
+        />
       )}
     </div>
   );
