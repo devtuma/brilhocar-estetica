@@ -987,3 +987,109 @@ export const simulatePaymentConfirmed = functions.https.onCall(async (data, cont
     throw new functions.https.HttpsError('internal', error.message || 'Erro desconhecido');
   }
 });
+
+/**
+ * Criar agendamento com validacao ATOMICA de conflito de horario
+ * Usa Firestore Transaction para garantir que NAO ha race condition
+ * entre multiplos usuarios tentando reservar o mesmo horario.
+ */
+export const createAppointmentWithSlotLock = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+  }
+
+  const { appointmentData } = data;
+  if (!appointmentData || !appointmentData.date || !appointmentData.time) {
+    throw new functions.https.HttpsError('invalid-argument', 'Data e horário são obrigatórios');
+  }
+
+  const userId = context.auth.uid;
+  const appointmentDate = appointmentData.date;
+  const appointmentTime = appointmentData.time;
+
+  try {
+    // Funcao que roda dentro da transacao
+    const result = await db.runTransaction(async (transaction) => {
+      // Buscar TODOS os appointments da data/horario que possam conflitar
+      const conflictingQuery = db.collection('appointments')
+        .where('date', '==', appointmentDate)
+        .where('time', '==', appointmentTime);
+
+      const conflictingSnap = await transaction.get(conflictingQuery);
+
+      // Verificar conflitos
+      const now = Date.now();
+      const SLOT_HOLD_MS = 10 * 60 * 1000; // 10 minutos
+
+      for (const doc of conflictingSnap.docs) {
+        const existing = doc.data();
+
+        // Cancelados/Expirados nao bloqueiam
+        if (existing.status === 'Cancelado') continue;
+        if (existing.pixStatus === 'expired' || existing.pixStatus === 'cancelled') continue;
+
+        // Se ja foi pago, BLOQUEIA DEFINITIVAMENTE
+        if (existing.pixStatus === 'paid') {
+          throw new functions.https.HttpsError(
+            'already-exists',
+            `O horário ${appointmentTime} já está reservado e pago. Escolha outro horário.`
+          );
+        }
+
+        // Se esta aguardando pagamento, BLOQUEIA ate PIX expirar
+        if (existing.status === 'Aguardando Pagamento') {
+          const createdAt = existing.createdAt?.toMillis ? existing.createdAt.toMillis() : 0;
+          const elapsed = now - createdAt;
+          if (elapsed < SLOT_HOLD_MS) {
+            throw new functions.https.HttpsError(
+              'already-exists',
+              `O horário ${appointmentTime} está reservado por outro cliente. Tente novamente em ${Math.ceil((SLOT_HOLD_MS - elapsed) / 60000)} minutos ou escolha outro horário.`
+            );
+          }
+        }
+
+        // Outros status ativos bloqueiam
+        if (['Agendado', 'Veículo Recebido', 'Serviço Iniciado'].includes(existing.status)) {
+          throw new functions.https.HttpsError(
+            'already-exists',
+            `O horário ${appointmentTime} já está ocupado. Escolha outro horário.`
+          );
+        }
+      }
+
+      // Se chegou aqui, NAO ha conflito. Criar o appointment.
+      const newRef = db.collection('appointments').doc();
+
+      // Garantir userId do contexto (seguranca)
+      const safeData = {
+        ...appointmentData,
+        userId,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      transaction.set(newRef, safeData);
+
+      return newRef.id;
+    });
+
+    console.log(`[createAppointmentWithSlotLock] Agendamento criado: ${result}`);
+
+    return {
+      success: true,
+      appointmentId: result,
+    };
+  } catch (error: any) {
+    console.error('[createAppointmentWithSlotLock] Erro:', error);
+
+    // Re-throw HttpsError (vai mostrar mensagem amigavel)
+    if (error.code && error.code.startsWith('functions/https/')) {
+      throw error;
+    }
+
+    throw new functions.https.HttpsError(
+      'internal',
+      error.message || 'Erro ao criar agendamento'
+    );
+  }
+});

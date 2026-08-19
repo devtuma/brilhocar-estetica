@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../firebase';
 import { Plus, Car, AlertCircle } from 'lucide-react';
 import VehiclePicker from '../components/VehiclePicker';
 import TimeSlotPicker from '../components/TimeSlotPicker';
@@ -167,7 +169,17 @@ export default function Booking() {
     };
 
     try {
-      const docRef = await addDoc(collection(db, 'appointments'), appointment);
+      // USAR CLOUD FUNCTION COM TRANSACTION ATOMICA
+      // Evita race condition entre multiplos usuarios reservando mesmo horario
+      const createFn = httpsCallable(functions, 'createAppointmentWithSlotLock');
+      const result = await createFn({
+        appointmentData: {
+          ...appointment,
+          // Nao enviar createdAt/updatedAt - a Cloud Function gera
+        }
+      });
+
+      const docRef = { id: result.data.appointmentId };
 
       // Atualiza lastAccess do user
       if (user) {
@@ -186,7 +198,16 @@ export default function Booking() {
 
     } catch (err) {
       console.error(err);
-      alert('Erro ao agendar. Verifique as configurações do Firebase.');
+      // Mensagem amigavel para conflito de horario
+      const msg = err.message || '';
+      if (msg.includes('já está reservado') || msg.includes('já está ocupado')) {
+        alert(`⚠️ ${msg}\n\nPor favor, escolha outro horário.`);
+        // Forcar recarregar slots
+        setShowTimeSlotPicker(false);
+        setTimeout(() => setShowTimeSlotPicker(true), 100);
+      } else {
+        alert('Erro ao agendar: ' + msg);
+      }
     } finally {
       setLoading(false);
     }

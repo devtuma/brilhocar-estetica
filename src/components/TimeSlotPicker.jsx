@@ -129,34 +129,43 @@ export default function TimeSlotPicker({
         const q = query(
           appointmentsRef,
           where('date', '==', selectedDate),
+          // CRITICO: incluir TODOS os status que ocupam slot, exceto Cancelados/Expirados
           where('status', 'in', ['Aguardando Pagamento', 'Agendado', 'Veículo Recebido', 'Serviço Iniciado'])
         );
 
         const snapshot = await getDocs(q);
         const now = Date.now();
-        // SLOT_TIMEOUT: 10 minutos (tempo para confirmar pagamento PIX)
-        // Após esse tempo, o slot é liberado para outra pessoa marcar
+        // IMPORTANTE: Slots com pagamento pendente ficam RESERVADOS ate o PIX expirar (10min)
+        // APOS o PIX expirar, o slot e liberado (isso e feito pela Cloud Function checkExpiredPayments
+        // que muda pixStatus para 'expired' e mantem o appointment, mas so conta como ocupado se pixStatus === 'paid')
         const SLOT_HOLD_MS = 10 * 60 * 1000;
         const booked = snapshot.docs.map(doc => {
           const d = doc.data();
-          const data = {
+          return {
             time: d.time,
             duration: d.totalDuration || 60,
             status: d.status,
-            createdAt: d.createdAt?.toMillis ? d.createdAt.toMillis() : (d.createdAt ? new Date(d.createdAt).getTime() : 0)
+            pixStatus: d.pixStatus,
+            pixExpiresAt: d.pixExpiresAt?.toMillis ? d.pixExpiresAt.toMillis() : (d.pixExpiresAt ? new Date(d.pixExpiresAt).getTime() : 0),
+            createdAt: d.createdAt?.toMillis ? d.createdAt.toMillis() : (d.createdAt ? new Date(d.createdAt).getTime() : 0),
+            id: doc.id
           };
-          return data;
         }).filter(d => {
-          // IMPORTANTE: Slots com 'Aguardando Pagamento' só bloqueiam por 10 minutos
-          // Depois disso, o slot é LIBERADO para outra pessoa agendar
+          // CRITICO: Cancelados nunca contam como ocupado
+          if (d.status === 'Cancelado') return false;
+          if (d.pixStatus === 'expired') return false; // PIX expirado = slot livre
+          if (d.pixStatus === 'cancelled') return false;
+          // Se ja foi pago, sempre bloqueia
+          if (d.pixStatus === 'paid') return true;
+          // Se esta aguardando pagamento, bloqueia ate expirar
           if (d.status === 'Aguardando Pagamento') {
             const elapsed = now - d.createdAt;
             if (elapsed > SLOT_HOLD_MS) {
-              console.log(`[TimeSlotPicker] Liberando slot ${d.time} (Aguardando há ${Math.round(elapsed/60000)}min)`);
-              return false; // Não conta como ocupado
+              console.log(`[TimeSlotPicker] Liberando slot ${d.time} (PIX expirado)`);
+              return false; // Liberar slot
             }
           }
-          return true; // Conta como ocupado
+          return true; // Bloquear slot
         }).map(d => ({ time: d.time, duration: d.duration }));
 
         setBookedSlots(booked);
