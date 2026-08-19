@@ -1093,3 +1093,111 @@ export const createAppointmentWithSlotLock = functions.https.onCall(async (data,
     );
   }
 });
+
+/**
+ * Buscar agendamento por OS ou ID
+ * Usado pelo scanner de QR Code do admin
+ */
+export const findAppointmentByOS = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+  }
+
+  const { os, appointmentId } = data;
+
+  if (!os && !appointmentId) {
+    throw new functions.https.HttpsError('invalid-argument', 'OS ou appointmentId é obrigatório');
+  }
+
+  try {
+    let docRef;
+
+    if (appointmentId) {
+      docRef = db.collection('appointments').doc(appointmentId);
+    } else if (os) {
+      // Buscar por OS (número de ordem de serviço)
+      const snapshot = await db.collection('appointments')
+        .where('os', '==', os)
+        .limit(1)
+        .get();
+
+      if (snapshot.empty) {
+        return { success: false, error: 'Agendamento não encontrado' };
+      }
+
+      docRef = snapshot.docs[0].ref;
+    }
+
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return { success: false, error: 'Agendamento não encontrado' };
+    }
+
+    const data = doc.data();
+    return {
+      success: true,
+      appointment: {
+        id: doc.id,
+        os: data.os,
+        userName: data.userName || data.name,
+        userCelular: data.userCelular || data.celular,
+        car: data.car,
+        plate: data.plate,
+        date: data.date,
+        time: data.time,
+        services: data.services,
+        serviceNames: data.serviceNames,
+        totalPrice: data.totalPrice,
+        status: data.status,
+        pixStatus: data.pixStatus,
+        pixAmount: data.pixAmount,
+        createdAt: data.createdAt?.toDate?.()?.toISOString()
+      }
+    };
+
+  } catch (error: any) {
+    console.error('[findAppointmentByOS] Erro:', error);
+    throw new functions.https.HttpsError('internal', error.message || 'Erro ao buscar agendamento');
+  }
+});
+
+/**
+ * Adicionar entrada ao timeline de um agendamento
+ */
+export const addTimelineEntry = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+  }
+
+  const { appointmentId, status, note } = data;
+
+  if (!appointmentId) {
+    throw new functions.https.HttpsError('invalid-argument', 'appointmentId é obrigatório');
+  }
+
+  try {
+    const appointmentRef = db.collection('appointments').doc(appointmentId);
+    const doc = await appointmentRef.get();
+
+    if (!doc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Agendamento não encontrado');
+    }
+
+    const entry = {
+      status: status || doc.data().status,
+      date: new Date().toISOString(),
+      note: note || null
+    };
+
+    await appointmentRef.update({
+      timeline: admin.firestore.FieldValue.arrayUnion(entry)
+    });
+
+    return { success: true };
+
+  } catch (error: any) {
+    console.error('[addTimelineEntry] Erro:', error);
+    throw new functions.https.HttpsError('internal', error.message || 'Erro ao atualizar timeline');
+  }
+});

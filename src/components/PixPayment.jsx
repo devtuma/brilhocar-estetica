@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Copy, CheckCircle, Clock, AlertCircle, QrCode, X, RefreshCw, Download } from 'lucide-react';
+import { Copy, CheckCircle, Clock, QrCode, X, RefreshCw, Download } from 'lucide-react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 
@@ -181,10 +181,6 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
     }
   };
 
-  // Verificar se esta usando sandbox
-  const isSandbox = window.location.hostname.includes('localhost') ||
-    window.location.hostname.includes('vercel');
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
@@ -239,19 +235,6 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
 
   return (
     <div className="max-w-md mx-auto">
-      {/* Aviso de sandbox */}
-      {isSandbox && (
-        <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 mb-6">
-          <p className="text-yellow-400 text-sm font-semibold flex items-center gap-2">
-            <AlertCircle size={18} />
-            Modo de Teste (Sandbox)
-          </p>
-          <p className="text-yellow-300/80 text-xs mt-1">
-            Este e um ambiente de testes. Pagamentos nao sao reais.
-          </p>
-        </div>
-      )}
-
       {/* Timer */}
       {timeLeft !== null && (
         <div className={`flex items-center justify-center gap-2 mb-6 px-4 py-3 rounded-xl ${
@@ -410,27 +393,6 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
         >
           <RefreshCw size={16} />
           Gerar novo QR Code
-        </button>
-
-        {/* BOTAO DE TESTE - REMOVER EM PRODUCAO */}
-        <button
-          onClick={async () => {
-            if (!paymentData?.paymentId) return;
-            if (!confirm('Simular pagamento confirmado via webhook?')) return;
-            try {
-              const { httpsCallable } = await import('firebase/functions');
-              const { functions } = await import('../firebase');
-              const simulateWebhook = httpsCallable(functions, 'simulatePaymentConfirmed');
-              await simulateWebhook({ paymentId: paymentData.paymentId, appointmentId });
-              alert('Simulação enviada! Verifique se o redirecionamento funcionou.');
-            } catch (err) {
-              console.error('Erro na simulação:', err);
-              alert('Erro ao simular: ' + err.message);
-            }
-          }}
-          className="w-full px-6 py-3 bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 font-semibold rounded-xl hover:bg-yellow-500/30 transition-colors flex items-center justify-center gap-2 text-sm"
-        >
-          🧪 SIMULAR PAGAMENTO (TESTE)
         </button>
       </div>
 

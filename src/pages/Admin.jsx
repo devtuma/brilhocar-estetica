@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, deleteDoc, addDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db, auth } from '../firebase';
-import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle, Sparkles, Trash2, X, FileText, RefreshCcw, CheckSquare, Square, Loader2 } from 'lucide-react';
+import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle, Sparkles, Trash2, X, FileText, RefreshCcw, CheckSquare, Square, Loader2, QrCode } from 'lucide-react';
+import CheckinScanner from '../components/CheckinScanner';
 
 export default function Admin() {
   const [appointments, setAppointments] = useState([]);
@@ -15,6 +16,7 @@ export default function Admin() {
   // Seleção múltipla
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [deletingMultiple, setDeletingMultiple] = useState(false);
+  const [showCheckinScanner, setShowCheckinScanner] = useState(false);
 
   useEffect(() => {
     // Escuta em tempo real todas as OSs
@@ -109,23 +111,23 @@ export default function Admin() {
         type: 'appointment_deleted',
         appointmentId: app.id,
         appointmentData: {
-          os: app.os,
-          userId: app.userId,
-          userName: app.name,
-          userCelular: app.userCelular,
-          userEmail: app.userEmail || null,
-          car: app.car,
-          plate: app.plate,
-          services: app.services,
-          totalPrice: app.totalPrice,
-          totalDuration: app.totalDuration,
-          date: app.date,
-          time: app.time,
-          status: app.status,
-          pixStatus: app.pixStatus,
-          pixAmount: app.pixAmount,
-          pixPaymentId: app.pixPaymentId,
-          createdAt: app.createdAt,
+          os: app.os || null,
+          userId: app.userId || null,
+          userName: app.name || app.userName || null,
+          userCelular: app.userCelular || app.celular || null,
+          userEmail: app.userEmail || app.email || null,
+          car: app.car || null,
+          plate: app.plate || null,
+          services: app.services || [],
+          totalPrice: app.totalPrice || null,
+          totalDuration: app.totalDuration || null,
+          date: app.date || null,
+          time: app.time || null,
+          status: app.status || null,
+          pixStatus: app.pixStatus || null,
+          pixAmount: app.pixAmount || null,
+          pixPaymentId: app.pixPaymentId || null,
+          createdAt: app.createdAt || null,
         },
         reason: reason || 'Não informado',
         deletedBy: auth.currentUser?.uid || 'admin',
@@ -187,23 +189,23 @@ export default function Admin() {
             type: 'appointment_deleted',
             appointmentId: id,
             appointmentData: {
-              os: app.os,
-              userId: app.userId,
-              userName: app.name,
-              userCelular: app.userCelular,
-              userEmail: app.userEmail || null,
-              car: app.car,
-              plate: app.plate,
-              services: app.services,
-              totalPrice: app.totalPrice,
-              totalDuration: app.totalDuration,
-              date: app.date,
-              time: app.time,
-              status: app.status,
-              pixStatus: app.pixStatus,
-              pixAmount: app.pixAmount,
-              pixPaymentId: app.pixPaymentId,
-              createdAt: app.createdAt,
+              os: app.os || null,
+              userId: app.userId || null,
+              userName: app.name || app.userName || null,
+              userCelular: app.userCelular || app.celular || null,
+              userEmail: app.userEmail || app.email || null,
+              car: app.car || null,
+              plate: app.plate || null,
+              services: app.services || [],
+              totalPrice: app.totalPrice || null,
+              totalDuration: app.totalDuration || null,
+              date: app.date || null,
+              time: app.time || null,
+              status: app.status || null,
+              pixStatus: app.pixStatus || null,
+              pixAmount: app.pixAmount || null,
+              pixPaymentId: app.pixPaymentId || null,
+              createdAt: app.createdAt || null,
             },
             reason: reason || 'Não informado',
             deletedBy: auth.currentUser?.uid || 'admin',
@@ -393,7 +395,23 @@ export default function Admin() {
           <p className="font-bold text-white">Configurações</p>
           <p className="text-xs text-gray-500 mt-1">Regras do sistema</p>
         </Link>
+
+        <button
+          onClick={() => setShowCheckinScanner(!showCheckinScanner)}
+          className={`bg-surface border rounded-2xl p-5 hover:border-primary/50 transition-all group text-left ${showCheckinScanner ? 'border-primary/50' : 'border-gray-800'}`}
+        >
+          <QrCode size={28} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
+          <p className="font-bold text-white">Check-in</p>
+          <p className="text-xs text-gray-500 mt-1">Escanear QR Code</p>
+        </button>
       </div>
+
+      {/* Scanner de Check-in */}
+      {showCheckinScanner && (
+        <div className="mb-8">
+          <CheckinScanner />
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
