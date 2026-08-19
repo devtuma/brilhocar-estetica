@@ -25,8 +25,10 @@ service cloud.firestore {
 
     // ====== APPOINTMENTS ======
     match /appointments/{appointmentId} {
-      // Qualquer usuário logado pode criar seu próprio appointment
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // CRITICO: Criacao APENAS via Cloud Function createAppointmentWithSlotLock
+      // Isso garante validacao atomica de conflito de horario (anti-duplo-booking)
+      // O Cloud Function usa Admin SDK que bypassa rules, mas clients NAO podem criar direto
+      allow create: if false;
       // SEGURANÇA: Ler apenas o próprio agendamento ou admin
       allow read: if request.auth != null && (
         resource.data.userId == request.auth.uid ||
@@ -34,11 +36,8 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
       // Update: apenas o dono pode atualizar seus campos PIX OU admin
+      // IMPORTANTE: updates de status/pixStatus sao feitos pelo webhook (Admin SDK)
       allow update: if request.auth != null && (
-        (resource.data.userId == request.auth.uid &&
-         request.resource.data.userId == resource.data.userId &&
-         request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['pixStatus', 'updatedAt'])) ||
         ('admin' in request.auth.token) ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
