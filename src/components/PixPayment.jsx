@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Copy, CheckCircle, Clock, AlertCircle, QrCode, X } from 'lucide-react';
+import { Copy, CheckCircle, Clock, AlertCircle, QrCode, X, RefreshCw } from 'lucide-react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 
@@ -10,6 +10,7 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
   const [timeLeft, setTimeLeft] = useState(null);
   const [paymentData, setPaymentData] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState('pending');
+  const [manualMode, setManualMode] = useState(false);
 
   // Criar pagamento PIX
   const createPayment = useCallback(async () => {
@@ -22,18 +23,26 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
 
       if (result.data.success) {
         setPaymentData(result.data);
+        setManualMode(false);
 
         // Calcular tempo restante
         if (result.data.expiresAt) {
           const expiresAt = new Date(result.data.expiresAt).getTime();
-          setTimeLeft(Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)));
+          const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+          setTimeLeft(remaining);
         }
       } else {
-        setError('Erro ao criar pagamento');
+        setError(result.data.error || 'Erro ao criar pagamento');
       }
     } catch (err) {
       console.error('Erro ao criar PIX:', err);
-      setError(err.message || 'Erro ao criar pagamento PIX');
+      let errorMsg = err.message || 'Erro ao criar pagamento PIX';
+      if (errorMsg.includes('CPF')) {
+        errorMsg = 'Dados do cliente incompletos. CPF necessario para pagamento PIX.';
+      } else if (errorMsg.includes('API')) {
+        errorMsg = 'Erro de comunicacao com o gateway de pagamento. Tente novamente.';
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -66,7 +75,7 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          setError('Tempo de pagamento expirado');
+          setError('Tempo de pagamento expirado. Clique em Gerar Novamente abaixo.');
           return 0;
         }
         return prev - 1;
@@ -85,7 +94,7 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
       if (!isPaid) {
         setPaymentStatus('pending');
       }
-    }, 5000); // Verificar a cada 5 segundos
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [paymentData, paymentStatus, checkStatus]);
@@ -95,12 +104,23 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
     createPayment();
   }, [createPayment]);
 
-  // Copiar código PIX
+  // Copiar codigo PIX
   const copyPixCode = () => {
     if (paymentData?.payload) {
-      navigator.clipboard.writeText(paymentData.payload);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      navigator.clipboard.writeText(paymentData.payload).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(err => {
+        console.error('Erro ao copiar:', err);
+        const textArea = document.createElement('textarea');
+        textArea.value = paymentData.payload;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
     }
   };
 
@@ -119,26 +139,45 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
     }).format(value || 0);
   };
 
+  // Verificar se esta usando sandbox
+  const isSandbox = window.location.hostname.includes('localhost') ||
+    window.location.hostname.includes('vercel');
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-6"></div>
         <p className="text-gray-400 text-lg font-medium">Gerando QR Code PIX...</p>
+        <p className="text-gray-500 text-sm mt-2">Aguarde um momento</p>
       </div>
     );
   }
 
-  if (error) {
+  if (error && !paymentData) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <AlertCircle className="w-16 h-16 text-red-500 mb-6" />
-        <p className="text-red-500 text-lg font-medium mb-4">{error}</p>
-        <button
-          onClick={createPayment}
-          className="px-6 py-3 bg-primary text-black font-bold rounded-xl hover:bg-[#00c853] transition-colors"
-        >
-          Tentar Novamente
-        </button>
+        <p className="text-red-500 text-lg font-medium mb-2 text-center">{error}</p>
+        <p className="text-gray-400 text-sm mb-6 text-center">
+          Se o problema persistir, entre em contato pelo WhatsApp.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={createPayment}
+            className="px-6 py-3 bg-primary text-black font-bold rounded-xl hover:bg-[#00c853] transition-colors flex items-center gap-2"
+          >
+            <RefreshCw size={18} />
+            Tentar Novamente
+          </button>
+          <a
+            href="https://wa.me/5511981312143"
+            target="_blank"
+            rel="noreferrer"
+            className="px-6 py-3 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition-colors flex items-center gap-2"
+          >
+            Falar no WhatsApp
+          </a>
+        </div>
       </div>
     );
   }
@@ -151,13 +190,26 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
         </div>
         <h3 className="text-2xl font-bold text-green-500 mb-2">Pagamento Confirmado!</h3>
         <p className="text-gray-400 mb-6">Seu agendamento foi confirmado com sucesso.</p>
-        <p className="text-sm text-gray-500">Você será redirecionado em instantes...</p>
+        <p className="text-sm text-gray-500">Voce sera redirecionado em instantes...</p>
       </div>
     );
   }
 
   return (
     <div className="max-w-md mx-auto">
+      {/* Aviso de sandbox */}
+      {isSandbox && (
+        <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 mb-6">
+          <p className="text-yellow-400 text-sm font-semibold flex items-center gap-2">
+            <AlertCircle size={18} />
+            Modo de Teste (Sandbox)
+          </p>
+          <p className="text-yellow-300/80 text-xs mt-1">
+            Este e um ambiente de testes. Pagamentos nao sao reais.
+          </p>
+        </div>
+      )}
+
       {/* Timer */}
       {timeLeft !== null && (
         <div className={`flex items-center justify-center gap-2 mb-6 px-4 py-3 rounded-xl ${
@@ -171,40 +223,55 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
       )}
 
       {/* QR Code */}
-      {paymentData?.qrCode && (() => {
-        // Resiliente: Asaas pode retornar base64 puro OU já com prefixo data:image/png;base64,
-        const qrSrc = paymentData.qrCode.startsWith('data:')
-          ? paymentData.qrCode
-          : `data:image/png;base64,${paymentData.qrCode}`;
-        return (
-          <div className="bg-white rounded-3xl p-6 mb-6 flex justify-center">
+      {paymentData?.qrCode && !manualMode && (
+        <div className="bg-white rounded-3xl p-6 mb-6 flex justify-center">
+          <div className="relative">
             <img
-              src={qrSrc}
+              src={paymentData.qrCode.startsWith('data:')
+                ? paymentData.qrCode
+                : `data:image/png;base64,${paymentData.qrCode}`}
               alt="QR Code PIX"
               className="w-64 h-64"
+              onError={() => {
+                console.error('Erro ao carregar QR code');
+                setManualMode(true);
+              }}
             />
           </div>
-        );
-      })()}
+        </div>
+      )}
+
+      {/* Modo manual (se QR code falhar) */}
+      {manualMode && paymentData?.payload && (
+        <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 mb-6">
+          <p className="text-yellow-400 text-sm font-semibold mb-2">QR Code nao carregou</p>
+          <p className="text-yellow-300/80 text-xs mb-3">
+            Copie o codigo abaixo e cole no app do banco:
+          </p>
+          <div className="bg-gray-900 rounded-lg p-3 font-mono text-xs text-gray-300 break-all">
+            {paymentData.payload}
+          </div>
+        </div>
+      )}
 
       {/* Valor */}
       <div className="bg-surface border border-gray-800 rounded-2xl p-6 mb-6 text-center">
         <p className="text-gray-400 text-sm mb-1">Valor do sinal</p>
         <p className="text-4xl font-black text-primary">
-          {formatCurrency(paymentData?.pixAmount)}
+          {formatCurrency(paymentData?.pixAmount || paymentData?.amount)}
         </p>
         <p className="text-gray-500 text-xs mt-2">
           Pague o valor exato acima para confirmar seu agendamento
         </p>
       </div>
 
-      {/* Código PIX */}
+      {/* Codigo PIX (copiar e colar) */}
       {paymentData?.payload && (
         <div className="bg-surface border border-gray-800 rounded-2xl p-6 mb-6">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <QrCode size={20} className="text-primary" />
-              <span className="font-bold text-sm">Código PIX</span>
+              <span className="font-bold text-sm">Codigo PIX (copia e cola)</span>
             </div>
             <button
               onClick={copyPixCode}
@@ -228,13 +295,19 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
             </button>
           </div>
 
-          <div className="bg-gray-900 rounded-xl p-3 font-mono text-xs text-gray-400 break-all select-all">
+          <div className="bg-gray-900 rounded-xl p-3 font-mono text-xs text-gray-400 break-all select-all max-h-24 overflow-y-auto">
             {paymentData.payload}
           </div>
+
+          <p className="text-gray-500 text-xs mt-3">
+            - Abra o app do banco<br/>
+            - Escolha "Pix" e depois "Pagar com Pix copia e cola"<br/>
+            - Cole o codigo acima e confirme
+          </p>
         </div>
       )}
 
-      {/* Instruções */}
+      {/* Instrucoes */}
       <div className="bg-surface/50 border border-gray-800/50 rounded-2xl p-5 mb-6">
         <h4 className="font-bold text-sm mb-3">Como pagar:</h4>
         <ol className="space-y-2 text-sm text-gray-400">
@@ -248,32 +321,77 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
           </li>
           <li className="flex gap-3">
             <span className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center text-xs font-bold shrink-0">3</span>
-            <span>Escaneie o QR Code ou cole o código</span>
+            <span>Escaneie o QR Code ou cole o codigo</span>
           </li>
           <li className="flex gap-3">
             <span className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center text-xs font-bold shrink-0">4</span>
-            <span>Confirme o pagamento</span>
+            <span>Confirme o pagamento de <strong className="text-white">{formatCurrency(paymentData?.pixAmount || paymentData?.amount)}</strong></span>
           </li>
         </ol>
       </div>
 
-      {/* Botões */}
-      <div className="flex gap-4">
-        <button
-          onClick={onCancel}
-          className="flex-1 px-6 py-4 bg-gray-800 text-gray-300 font-bold rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
-        >
-          <X size={20} />
-          Cancelar
-        </button>
+      {/* Botoes */}
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-6 py-4 bg-gray-800 text-gray-300 font-bold rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <X size={20} />
+            Cancelar
+          </button>
+
+          <button
+            onClick={checkStatus}
+            disabled={!paymentData?.paymentId}
+            className="flex-1 px-6 py-4 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <CheckCircle size={20} />
+            Ja paguei
+          </button>
+        </div>
 
         <button
-          onClick={checkStatus}
-          className="flex-1 px-6 py-4 bg-primary text-black font-bold rounded-xl hover:bg-[#00c853] transition-colors flex items-center justify-center gap-2"
+          onClick={createPayment}
+          className="w-full px-6 py-3 bg-gray-800 text-gray-400 font-semibold rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 text-sm"
         >
-          <CheckCircle size={20} />
-          Já paguei
+          <RefreshCw size={16} />
+          Gerar novo QR Code
         </button>
+
+        {/* BOTAO DE TESTE - REMOVER EM PRODUCAO */}
+        <button
+          onClick={async () => {
+            if (!paymentData?.paymentId) return;
+            if (!confirm('Simular pagamento confirmado via webhook?')) return;
+            try {
+              const { httpsCallable } = await import('firebase/functions');
+              const { functions } = await import('../firebase');
+              const simulateWebhook = httpsCallable(functions, 'simulatePaymentConfirmed');
+              await simulateWebhook({ paymentId: paymentData.paymentId, appointmentId });
+              alert('Simulação enviada! Verifique se o redirecionamento funcionou.');
+            } catch (err) {
+              console.error('Erro na simulação:', err);
+              alert('Erro ao simular: ' + err.message);
+            }
+          }}
+          className="w-full px-6 py-3 bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 font-semibold rounded-xl hover:bg-yellow-500/30 transition-colors flex items-center justify-center gap-2 text-sm"
+        >
+          🧪 SIMULAR PAGAMENTO (TESTE)
+        </button>
+      </div>
+
+      {/* Ajuda */}
+      <div className="mt-6 pt-6 border-t border-gray-800 text-center">
+        <p className="text-sm text-gray-500 mb-3">Problemas com o pagamento?</p>
+        <a
+          href="https://wa.me/5511981312143"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 text-primary hover:underline text-sm font-semibold"
+        >
+          Falar com a BrilhoCar via WhatsApp
+        </a>
       </div>
     </div>
   );

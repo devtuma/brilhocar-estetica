@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { Search, Car, AlertCircle, Loader2, QrCode, X, MessageCircle, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -14,50 +14,52 @@ export default function Track() {
   const [rescheduleModal, setRescheduleModal] = useState(null);
 
   useEffect(() => {
-    const fetchAppointments = async () => {
-      const user = auth.currentUser;
-      if (!user) {
-        setError('Usuário não autenticado.');
-        setLoading(false);
-        return;
-      }
+    const user = auth.currentUser;
+    if (!user) {
+      setError('Usuário não autenticado.');
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const q = query(
-          collection(db, 'appointments'),
-          where('userId', '==', user.uid)
-        );
+    // USAR onSnapshot PARA ATUALIZAÇÕES EM TEMPO REAL
+    // Quando o webhook confirmar o pagamento PIX, esta página vai atualizar automaticamente!
+    const q = query(
+      collection(db, 'appointments'),
+      where('userId', '==', user.uid)
+    );
 
-        const querySnapshot = await getDocs(q);
-        const docs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const docs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        // Filtrar: mostrar apenas agendamentos pagos (pixStatus === 'paid') ou sem pixStatus (legado)
-        const paidDocs = docs.filter(d => {
-          // Se não tem pixStatus (legado), mostrar
-          if (!d.pixStatus) return true;
-          // Se está pago, mostrar
-          if (d.pixStatus === 'paid') return true;
-          // Caso contrário, esconder
-          return false;
-        });
+      // Filtrar: mostrar apenas agendamentos pagos (pixStatus === 'paid') ou sem pixStatus (legado)
+      // IMPORTANTE: também mostrar agendamentos pendentes para detectar confirmação em tempo real
+      const validDocs = docs.filter(d => {
+        // Se não tem pixStatus (legado), mostrar
+        if (!d.pixStatus) return true;
+        // Se está pago, mostrar
+        if (d.pixStatus === 'paid') return true;
+        // Mostrar também pendentes recentes (para detectar quando ficam pagos)
+        if (d.pixStatus === 'pending') return true;
+        // Excluir cancelados e expirados
+        return false;
+      });
 
-        // Ordena no frontend caso haja problema com índice composto
-        paidDocs.sort((a, b) => {
-          const aTime = a.createdAt?.toMillis?.() ?? a.createdAt?.seconds * 1000 ?? 0;
-          const bTime = b.createdAt?.toMillis?.() ?? b.createdAt?.seconds * 1000 ?? 0;
-          return bTime - aTime;
-        });
+      // Ordena no frontend caso haja problema com índice composto
+      validDocs.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() ?? a.createdAt?.seconds * 1000 ?? 0;
+        const bTime = b.createdAt?.toMillis?.() ?? b.createdAt?.seconds * 1000 ?? 0;
+        return bTime - aTime;
+      });
 
-        setAppointments(paidDocs);
-      } catch (err) {
-        console.error(err);
-        setError('Erro ao buscar seus veículos. Tente novamente.');
-      } finally {
-        setLoading(false);
-      }
-    };
+      setAppointments(validDocs);
+      setLoading(false);
+    }, (err) => {
+      console.error('Erro no listener de agendamentos:', err);
+      setError('Erro ao buscar seus veículos. Tente novamente.');
+      setLoading(false);
+    });
 
-    fetchAppointments();
+    return () => unsubscribe();
   }, []);
 
   const getStatusStep = (status) => {

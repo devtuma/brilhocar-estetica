@@ -26,7 +26,28 @@ export default function TimeSlotPicker({
     };
   });
   const [blockedDates, setBlockedDates] = useState([]);
-  const [blockedHours, setBlockedHours] = useState({}); // horários bloqueados por dia da semana
+  const [blockedRanges, setBlockedRanges] = useState({}); // intervalos bloqueados por dia da semana: {monday: [{start,end}], ...}
+  const [blockedHours, setBlockedHours] = useState({}); // fallback legibilidade
+
+  // Helper: "HH:MM" → minutos
+  const toMinutes = (time) => {
+    if (!time) return 0;
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  // Verifica se um slot está dentro de algum intervalo bloqueado
+  const isSlotBlockedByRange = (time, dayRanges, durationMins) => {
+    if (!dayRanges || dayRanges.length === 0) return false;
+    const slotStart = toMinutes(time);
+    const slotEnd = slotStart + durationMins;
+    return dayRanges.some(r => {
+      const bStart = toMinutes(r.start);
+      const bEnd = toMinutes(r.end);
+      // Sobreposição: [slotStart, slotEnd) intersect [bStart, bEnd)
+      return slotStart < bEnd && bStart < slotEnd;
+    });
+  };
 
   // Gerar horários baseado na config do admin
   const generateTimeSlots = () => {
@@ -46,9 +67,7 @@ export default function TimeSlotPicker({
     const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const dayKey = dayKeys[dayOfWeek];
     const dayConfig = hoursConfig[dayKey];
-    const dayBlockedHours = blockedHours[dayKey] || []; // horários bloqueados para este dia
-
-    console.log('[TimeSlotPicker] generateTimeSlots:', { selectedDate, dayOfWeek, dayKey, dayConfig: JSON.stringify(dayConfig), active: dayConfig?.active });
+    const dayRanges = blockedRanges[dayKey] || [];
 
     if (!dayConfig || !dayConfig.active) {
       return [];
@@ -59,15 +78,12 @@ export default function TimeSlotPicker({
     const [closeH, closeM] = dayConfig.close.split(':').map(Number);
     const openMin = openH * 60 + openM;
     const closeMin = closeH * 60 + closeM;
+    const duration = appointmentDuration || 60;
 
-    for (let m = openMin; m < closeMin; m += 60) {
+    for (let m = openMin; m + duration <= closeMin; m += 60) {
       const h = Math.floor(m / 60);
       const min = m % 60;
       const timeSlot = `${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-      // Pular horários bloqueados pelo admin
-      if (dayBlockedHours.includes(timeSlot)) {
-        continue;
-      }
       slots.push(timeSlot);
     }
 
@@ -104,7 +120,8 @@ export default function TimeSlotPicker({
             console.warn('[TimeSlotPicker] config existe mas sem businessHours');
           }
           if (data.blockedDates) setBlockedDates(data.blockedDates);
-          if (data.blockedHours) setBlockedHours(data.blockedHours);
+          if (data.blockedRanges) setBlockedRanges(data.blockedRanges);
+          if (data.blockedHours) setBlockedHours(data.blockedHours); // fallback legado
         }
 
         // Buscar agendamentos do dia
@@ -156,7 +173,7 @@ export default function TimeSlotPicker({
 
   // Verificar se um horário está disponível
   const isSlotAvailable = (time) => {
-    if (bookedSlots.length === 0) return true;
+    if (!time) return false;
 
     const timeToMinutes = (t) => {
       const [h, m] = t.split(':').map(Number);
@@ -166,13 +183,49 @@ export default function TimeSlotPicker({
     const slotStart = timeToMinutes(time);
     const slotEnd = slotStart + appointmentDuration;
 
+    // 0. Verificar se o horário já passou (se for HOJE)
+    // CORREÇÃO: não permitir agendar horários que já passaram
+    const now = new Date();
+    const selected = new Date(selectedDate + 'T00:00:00');
+    const isToday = selected.toDateString() === now.toDateString();
+    if (isToday) {
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      if (slotEnd <= nowMinutes) {
+        // Slot termina no passado - indisponível
+        return false;
+      }
+      // Se slot está parcialmente no passado mas termina no futuro, ainda pode ser selecionado
+      // MAS só se faltar pelo menos 30 minutos para começar (margem de preparação)
+      if (slotStart < nowMinutes + 30) {
+        return false;
+      }
+    }
+
+    // 1. Verificar agendamentos existentes
     for (const booking of bookedSlots) {
       const bookingStart = timeToMinutes(booking.time);
       const bookingEnd = bookingStart + (booking.duration || 60);
-
       if (slotStart < bookingEnd && slotEnd > bookingStart) {
         return false;
       }
+    }
+
+    // 2. Verificar intervalos bloqueados pelo admin (formato novo: blockedRanges)
+    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayKey = dayKeys[new Date(selectedDate + 'T12:00:00').getDay()];
+    const dayRanges = blockedRanges[dayKey] || [];
+    for (const range of dayRanges) {
+      const bStart = timeToMinutes(range.start);
+      const bEnd = timeToMinutes(range.end);
+      if (slotStart < bEnd && bStart < slotEnd) {
+        return false;
+      }
+    }
+
+    // 3. Fallback: horários bloqueados (formato antigo: blockedHours)
+    const dayBlockedHours = blockedHours[dayKey] || [];
+    if (dayBlockedHours.includes(time)) {
+      return false;
     }
 
     return true;

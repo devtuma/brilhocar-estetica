@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, deleteDoc, addDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, deleteDoc, addDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db, auth } from '../firebase';
-import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle, Sparkles, Trash2, X, FileText } from 'lucide-react';
+import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle, Sparkles, Trash2, X, FileText, RefreshCcw, CheckSquare, Square, Loader2 } from 'lucide-react';
 
 export default function Admin() {
   const [appointments, setAppointments] = useState([]);
@@ -12,6 +12,9 @@ export default function Admin() {
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [bootstrapping, setBootstrapping] = useState(false);
   const [bootstrapMsg, setBootstrapMsg] = useState(null);
+  // Seleção múltipla
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [deletingMultiple, setDeletingMultiple] = useState(false);
 
   useEffect(() => {
     // Escuta em tempo real todas as OSs
@@ -137,6 +140,100 @@ export default function Admin() {
     } catch (err) {
       console.error('Erro ao deletar:', err);
       alert('Erro ao deletar agendamento. Verifique permissões.');
+    }
+  };
+
+  // Seleção múltipla
+  const toggleSelect = (id) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === appointments.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(appointments.map(a => a.id)));
+    }
+  };
+
+  const handleDeleteMultiple = async () => {
+    if (selectedIds.size === 0) return;
+
+    const count = selectedIds.size;
+    const reason = prompt(
+      `Excluir ${count} agendamento${count > 1 ? 's' : ''}?\n\nMotivo (opcional):`,
+      ''
+    );
+    if (reason === null) return; // cancelou
+
+    setDeletingMultiple(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+      for (const id of selectedIds) {
+        const app = appointments.find(a => a.id === id);
+        if (!app) continue;
+
+        try {
+          // Salvar log
+          await addDoc(collection(db, 'audit_logs'), {
+            type: 'appointment_deleted',
+            appointmentId: id,
+            appointmentData: {
+              os: app.os,
+              userId: app.userId,
+              userName: app.name,
+              userCelular: app.userCelular,
+              userEmail: app.userEmail || null,
+              car: app.car,
+              plate: app.plate,
+              services: app.services,
+              totalPrice: app.totalPrice,
+              totalDuration: app.totalDuration,
+              date: app.date,
+              time: app.time,
+              status: app.status,
+              pixStatus: app.pixStatus,
+              pixAmount: app.pixAmount,
+              pixPaymentId: app.pixPaymentId,
+              createdAt: app.createdAt,
+            },
+            reason: reason || 'Não informado',
+            deletedBy: auth.currentUser?.uid || 'admin',
+            deletedByEmail: auth.currentUser?.email || 'admin',
+            deletedAt: serverTimestamp(),
+            batchDelete: true,
+            totalInBatch: count,
+          });
+
+          // Deletar
+          await deleteDoc(doc(db, 'appointments', id));
+          successCount++;
+        } catch (err) {
+          console.error(`Erro ao deletar ${id}:`, err);
+          failCount++;
+        }
+      }
+
+      setSelectedIds(new Set());
+
+      if (failCount === 0) {
+        alert(`${successCount} agendamento${successCount > 1 ? 's' : ''} removido${successCount > 1 ? 's' : ''} e registrado${successCount > 1 ? 's' : ''} no histórico.`);
+      } else {
+        alert(`${successCount} deletado${successCount > 1 ? 's' : ''}, ${failCount} falhou${failCount > 1 ? 'ram' : ''}.`);
+      }
+    } catch (err) {
+      console.error('Erro na exclusão em massa:', err);
+      alert('Erro ao deletar agendamentos.');
+    } finally {
+      setDeletingMultiple(false);
     }
   };
 
@@ -315,10 +412,50 @@ export default function Admin() {
 
       {/* Appointments Table */}
       <div className="bg-[#f8f9fa] rounded-xl overflow-hidden shadow-lg border border-gray-200">
+        {/* Barra de seleção múltipla */}
+        {selectedIds.size > 0 && (
+          <div className="bg-red-500 text-white p-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckSquare size={20} />
+              <span className="font-bold">{selectedIds.size} selecionado{selectedIds.size > 1 ? 's' : ''}</span>
+            </div>
+            <button
+              onClick={handleDeleteMultiple}
+              disabled={deletingMultiple}
+              className="bg-white text-red-500 font-bold px-4 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              {deletingMultiple ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 size={16} />
+                  Excluir Selecionados
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-black">
             <thead>
               <tr className="border-b border-gray-200">
+                <th className="p-4 font-semibold text-sm w-12">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="text-gray-500 hover:text-gray-700 transition-colors"
+                    title="Selecionar todos"
+                  >
+                    {selectedIds.size === appointments.length && appointments.length > 0 ? (
+                      <CheckSquare size={18} className="text-primary" />
+                    ) : (
+                      <Square size={18} />
+                    )}
+                  </button>
+                </th>
                 <th className="p-4 font-semibold text-sm">OS</th>
                 <th className="p-4 font-semibold text-sm">Cliente</th>
                 <th className="p-4 font-semibold text-sm">Veículo</th>
@@ -330,7 +467,19 @@ export default function Admin() {
             </thead>
             <tbody>
               {appointments.map(app => (
-                <tr key={app.id} className="border-b border-gray-200 hover:bg-white transition-colors text-sm">
+                <tr key={app.id} className={`border-b border-gray-200 hover:bg-white transition-colors text-sm ${selectedIds.has(app.id) ? 'bg-red-50' : ''}`}>
+                  <td className="p-4">
+                    <button
+                      onClick={() => toggleSelect(app.id)}
+                      className="text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      {selectedIds.has(app.id) ? (
+                        <CheckSquare size={18} className="text-primary" />
+                      ) : (
+                        <Square size={18} />
+                      )}
+                    </button>
+                  </td>
                   <td className="p-4 font-mono font-bold">{app.os}</td>
                   <td className="p-4">
                     <div>{app.name}</div>
@@ -386,7 +535,7 @@ export default function Admin() {
               ))}
               {appointments.length === 0 && !loading && (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center text-gray-500 font-medium">
+                  <td colSpan="8" className="p-8 text-center text-gray-500 font-medium">
                     Nenhum agendamento encontrado.
                   </td>
                 </tr>

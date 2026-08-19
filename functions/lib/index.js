@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkExpiredPayments = exports.seedServices = exports.bootstrapAdminHttp = exports.bootstrapAdmin = exports.saveTransaction = exports.cancelPixPayment = exports.asaasWebhook = exports.checkPixPaymentStatus = exports.createPixPaymentForAppointment = void 0;
+exports.simulatePaymentConfirmed = exports.checkExpiredPayments = exports.seedServices = exports.bootstrapAdminHttp = exports.bootstrapAdmin = exports.saveTransaction = exports.cancelPixPayment = exports.asaasWebhook = exports.checkPixPaymentStatus = exports.createPixPaymentForAppointment = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const axios_1 = __importDefault(require("axios"));
@@ -786,5 +786,57 @@ exports.checkExpiredPayments = functions.pubsub
     await batch.commit();
     console.log(`Verificados ${expiredQuery.size} pagamentos expirados`);
     return null;
+});
+/**
+ * SIMULAR PAGAMENTO - PARA TESTES ONLY
+ * Esta função simula o que o webhook do Asaas faz quando recebe PAYMENT_RECEIVED
+ * IMPORTANTE: REMOVER EM PRODUÇÃO!
+ */
+exports.simulatePaymentConfirmed = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+    }
+    const { paymentId, appointmentId } = data;
+    if (!paymentId && !appointmentId) {
+        throw new functions.https.HttpsError('invalid-argument', 'paymentId ou appointmentId é obrigatório');
+    }
+    try {
+        let appointmentRef;
+        if (appointmentId) {
+            appointmentRef = db.collection('appointments').doc(appointmentId);
+        }
+        else {
+            // Buscar pelo paymentId
+            const snapshot = await db.collection('appointments')
+                .where('pixPaymentId', '==', paymentId)
+                .limit(1)
+                .get();
+            if (snapshot.empty) {
+                throw new functions.https.HttpsError('not-found', 'Agendamento não encontrado');
+            }
+            appointmentRef = snapshot.docs[0].ref;
+        }
+        // Atualizar como se o webhook tivesse confirmado
+        await appointmentRef.update({
+            pixStatus: 'paid',
+            pixPaidAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: 'Agendado',
+            timeline: admin.firestore.FieldValue.arrayUnion({
+                status: 'Agendado',
+                date: new Date().toISOString(),
+                note: '[TESTE] Pagamento PIX simulado'
+            }),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        console.log(`[TESTE] Pagamento simulado para appointment: ${appointmentRef.id}`);
+        return {
+            success: true,
+            message: 'Pagamento simulado com sucesso! O onSnapshot deve detectar a mudança.'
+        };
+    }
+    catch (error) {
+        console.error('Erro ao simular pagamento:', error);
+        throw new functions.https.HttpsError('internal', error.message || 'Erro desconhecido');
+    }
 });
 //# sourceMappingURL=index.js.map

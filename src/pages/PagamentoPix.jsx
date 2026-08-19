@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import PixPayment from '../components/PixPayment';
 import { ArrowLeft, Calendar, Clock, Car, DollarSign } from 'lucide-react';
@@ -11,7 +11,9 @@ export default function PagamentoPix() {
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [redirecting, setRedirecting] = useState(false);
 
+  // Ouvir alterações em tempo real do agendamento
   useEffect(() => {
     if (!id) {
       setError('ID do agendamento não fornecido');
@@ -19,7 +21,6 @@ export default function PagamentoPix() {
       return;
     }
 
-    // Buscar agendamento
     const appointmentRef = doc(db, 'appointments', id);
     const unsubscribe = onSnapshot(appointmentRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -34,13 +35,14 @@ export default function PagamentoPix() {
 
         setAppointment(data);
 
-        // Se já tem QR code válido, mostrar diretamente
-        if (data.pixQrCodeImage && data.pixStatus === 'pending') {
-          // Verificar se ainda não expirou
-          const expiresAt = data.pixExpiresAt?.toDate?.() || new Date();
-          if (expiresAt > new Date()) {
-            // Manter o que já existe
-          }
+        // VERIFICAÇÃO CRÍTICA: Se o pagamento foi confirmado, redirecionar!
+        // Isso detecta quando o webhook atualiza o status
+        if (data.pixStatus === 'paid' || data.status === 'Agendado') {
+          console.log('[PagamentoPix] Pagamento confirmado via realtime listener!', data.status, data.pixStatus);
+          setRedirecting(true);
+          setTimeout(() => {
+            navigate('/track');
+          }, 1500);
         }
       } else {
         setError('Agendamento não encontrado');
@@ -53,14 +55,16 @@ export default function PagamentoPix() {
     });
 
     return () => unsubscribe();
-  }, [id]);
+  }, [id, navigate]);
 
-  const handleSuccess = () => {
-    // Redirecionar para acompanhamento após 2 segundos
+  const handleSuccess = useCallback(() => {
+    // Este callback é chamado pelo PixPayment quando o polling detecta pagamento
+    console.log('[PagamentoPix] handleSuccess chamado - redirecionando...');
+    setRedirecting(true);
     setTimeout(() => {
       navigate('/track');
-    }, 2000);
-  };
+    }, 1500);
+  }, [navigate]);
 
   const handleCancel = () => {
     navigate('/booking');
@@ -84,6 +88,28 @@ export default function PagamentoPix() {
       currency: 'BRL'
     }).format(value || 0);
   };
+
+  // Se já redirecionando, mostrar tela de sucesso
+  if (redirecting || (appointment && (appointment.pixStatus === 'paid' || appointment.status === 'Agendado'))) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6">
+        <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mb-6 animate-pulse">
+          <span className="text-4xl">✅</span>
+        </div>
+        <h2 className="text-2xl font-black text-green-500 mb-2">Pagamento Confirmado!</h2>
+        <p className="text-gray-400 text-center mb-6">Seu agendamento foi confirmado com sucesso.</p>
+        <p className="text-sm text-gray-500">Redirecionando para acompanhamento...</p>
+        <div className="mt-6">
+          <Link
+            to="/track"
+            className="px-6 py-3 bg-primary text-black font-bold rounded-xl hover:bg-[#00c853] transition-colors"
+          >
+            Ver Meus Agendamentos
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -184,7 +210,7 @@ export default function PagamentoPix() {
             Problemas com o pagamento?
           </p>
           <a
-            href="https://wa.me/5511999999999"
+            href="https://wa.me/5511981312143"
             target="_blank"
             rel="noreferrer"
             className="text-primary hover:underline text-sm font-semibold"

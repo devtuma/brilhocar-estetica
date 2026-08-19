@@ -105,25 +105,25 @@ export function usePixConfig() {
 }
 
 /**
- * Configuração padrão de textos
+ * Configuração padrão de textos - baseada no que está ONLINE AGORA
  */
 export function getDefaultTexts() {
   return {
     homeHero: {
-      title: 'BrilhoCar Estética Automotiva',
-      subtitle: 'Deixe seu carro com o brilho que ele merece!',
-      ctaText: 'Agendar Agora'
+      title: 'Devolva o Brilho Original ao seu Veículo.',
+      subtitle: 'Tratamento vip para o seu carro com produtos de alta performance.',
+      ctaText: 'Agendar Meu Horário'
     },
     homeAbout: {
-      title: 'Sobre Nós',
-      description: 'Somos especialistas em estética automotiva, oferecendo serviços de alta qualidade para deixar seu veículo impecável.'
+      title: 'Por que escolher a BrilhoCar?',
+      description: 'Não pulamos etapas. Utilizamos iluminação especial e técnicas avançadas para garantir que cada centímetro da pintura esteja perfeito. Acompanhamento em tempo real via QR Code exclusivo.'
     },
     bookingTitle: 'Novo Agendamento',
     bookingSubtitle: 'Selecione os serviços desejados e confirme os dados do seu veículo.',
     footer: {
-      address: 'Rua Exemplo, 123 - Centro',
-      phone: '(11) 99999-9999',
-      whatsapp: '5511999999999',
+      address: 'R. Pindamonhangaba, 178',
+      phone: '11981312143',
+      whatsapp: '5511981312143',
       instagram: '@brilhocar',
       facebook: 'BrilhoCar',
       email: 'contato@brilhocar.com'

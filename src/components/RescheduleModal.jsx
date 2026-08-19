@@ -63,10 +63,16 @@ export default function RescheduleModal({ appointment, onClose }) {
 
       const dayBlocked = hours.blockedDates?.[dateStr] || [];
       const blockedHours = hours.blockedHours?.[dayKey] || [];
+      const blockedRanges = hours.blockedRanges?.[dayKey] || [];
 
       const occupied = existingAppointments
         .filter(a => a.date === dateStr && a.status !== 'Cancelado' && a.id !== appointment.id)
         .map(a => a.time);
+
+      const timeToMinutes = (t) => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+      };
 
       for (let m = openMin; m + duration <= closeMin; m += 60) {
         const h = Math.floor(m / 60);
@@ -74,6 +80,17 @@ export default function RescheduleModal({ appointment, onClose }) {
         const timeSlot = `${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
         if (dayBlocked.includes(dateStr)) continue;
         if (blockedHours.includes(timeSlot)) continue;
+
+        // Bloqueio por intervalo (novo formato)
+        const slotStart = timeToMinutes(timeSlot);
+        const slotEnd = slotStart + duration;
+        const isInBlockedRange = blockedRanges.some(r => {
+          const bStart = timeToMinutes(r.start);
+          const bEnd = timeToMinutes(r.end);
+          return slotStart < bEnd && bStart < slotEnd;
+        });
+        if (isInBlockedRange) continue;
+
         if (occupied.includes(timeSlot)) continue;
         slots.push(timeSlot);
       }

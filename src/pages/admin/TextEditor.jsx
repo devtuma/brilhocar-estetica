@@ -1,14 +1,35 @@
-import { useState, useEffect, useRef } from 'react';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { doc, onSnapshot, updateDoc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { Loader2, Save, Eye, Edit3 } from 'lucide-react';
+import { Loader2, Save, Eye, Edit3, CheckCircle, AlertCircle } from 'lucide-react';
+
+// Defaults baseados nos textos hardcoded que estão no site online agora.
+// Quando o admin abrir o TextEditor sem nada salvo, ele vê ISTO.
+export const TEXT_DEFAULTS = {
+  homeHero: {
+    title: 'Devolva o Brilho Original ao seu Veículo.',
+    subtitle: 'Tratamento vip para o seu carro com produtos de alta performance.',
+    ctaText: 'Agendar Meu Horário',
+  },
+  homeAbout: {
+    title: 'Por que escolher a BrilhoCar?',
+    description: 'Não pulamos etapas. Utilizamos iluminação especial e técnicas avançadas para garantir que cada centímetro da pintura esteja perfeito. Acompanhamento em tempo real via QR Code exclusivo.',
+  },
+  bookingTitle: 'Novo Agendamento',
+  bookingSubtitle: 'Selecione os serviços desejados e confirme os dados do seu veículo.',
+  footer: {
+    address: 'R. Pindamonhangaba, 178',
+    phone: '11981312143',
+    whatsapp: '5511981312143',
+    instagram: '@brilhocar',
+    facebook: 'BrilhoCar',
+    email: 'contato@brilhocar.com',
+  },
+};
 
 /**
- * Editor de texto modular para o CMS Admin
- *
- * @param {string} sectionKey - Chave da seção em config.texts (ex: 'homeHero')
- * @param {Array} fields - Array de campos [{key: 'title', label: 'Título', type: 'text'|'textarea'}]
- * @param {boolean} showPreview - Se deve mostrar preview
+ * Editor de texto modular para o CMS Admin - VERSÃO ROBUSTA
+ * Usa onSnapshot para sempre refletir o que está salvo no Firestore.
  */
 export default function TextEditor({ sectionKey, fields, showPreview = true }) {
   const [values, setValues] = useState({});
@@ -19,55 +40,68 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
   const [loadingSection, setLoadingSection] = useState(true);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  // Referência para evitar carregar 2x
-  const loadedSectionRef = useRef(null);
-
-  // Carregar valores quando mudar a seção
+  // Carregar valores em real-time sempre que sectionKey mudar
   useEffect(() => {
-    // Evitar carregar a mesma seção várias vezes
-    if (loadedSectionRef.current === sectionKey) return;
+    setLoadingSection(true);
+    setValues({});
+    setOriginalValues({});
 
-    const loadConfig = async () => {
-      setLoadingSection(true);
-      try {
-        const configRef = doc(db, 'config', 'main');
-        const configSnap = await getDoc(configRef);
+    const unsub = onSnapshot(
+      doc(db, 'config', 'main'),
+      async (docSnap) => {
+        let texts = {};
+        const data = docSnap.exists() ? docSnap.data() : {};
+        texts = data.texts || {};
 
-        if (configSnap.exists()) {
-          const texts = configSnap.data().texts || {};
-          const section = texts[sectionKey] || {};
+        // Pegar defaults baseados no que está online AGORA
+        const defaults = TEXT_DEFAULTS[sectionKey] || {};
 
-          const initialValues = {};
-          fields.forEach(field => {
-            // Mostrar valor atual OU placeholder se vazio
-            initialValues[field.key] = section[field.key] !== undefined ? section[field.key] : '';
-          });
-
-          setValues(initialValues);
-          setOriginalValues(initialValues);
-
-          if (configSnap.data().updatedAt) {
-            setLastSaved(configSnap.data().updatedAt);
+        // Se a seção não existir no Firestore, CRIAR automaticamente com defaults
+        if (!texts[sectionKey] || Object.keys(texts[sectionKey]).length === 0) {
+          try {
+            await setDoc(
+              doc(db, 'config', 'main'),
+              {
+                texts: {
+                  ...texts,
+                  [sectionKey]: defaults,
+                },
+                updatedAt: serverTimestamp(),
+                updatedBy: 'system-auto-init',
+              },
+              { merge: true }
+            );
+            console.log(`✅ Seção '${sectionKey}' inicializada no Firestore`);
+          } catch (e) {
+            console.warn('Não foi possível auto-inicializar:', e);
           }
-        } else {
-          // Se não existe config, criar com valores vazios
-          const initialValues = {};
-          fields.forEach(field => {
-            initialValues[field.key] = '';
-          });
-          setValues(initialValues);
-          setOriginalValues(initialValues);
         }
-        loadedSectionRef.current = sectionKey;
-      } catch (err) {
+
+        // SEMPRE mostrar valores - Firestore tem prioridade, defaults se vazio
+        const section = texts[sectionKey] || defaults || {};
+        const initialValues = {};
+        fields.forEach(field => {
+          initialValues[field.key] = section[field.key] !== undefined && section[field.key] !== ''
+            ? section[field.key]
+            : (defaults[field.key] !== undefined ? defaults[field.key] : '');
+        });
+
+        setValues(initialValues);
+        setOriginalValues(initialValues);
+
+        if (data.updatedAt) {
+          setLastSaved(data.updatedAt);
+        }
+        setLoadingSection(false);
+      },
+      (err) => {
         console.error('Erro ao carregar config:', err);
-      } finally {
         setLoadingSection(false);
       }
-    };
+    );
 
-    loadConfig();
-  }, [sectionKey]); // Apenas sectionKey nas deps
+    return () => unsub();
+  }, [sectionKey, fields]);
 
   const hasChanges = JSON.stringify(values) !== JSON.stringify(originalValues);
 
@@ -79,43 +113,32 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
     if (!hasChanges) return;
 
     setSaving(true);
+    setToast({ show: false, message: '', type: 'success' });
     try {
       const configRef = doc(db, 'config', 'main');
 
-      // Buscar config atual
-      const configSnap = await getDoc(configRef);
-      const currentData = configSnap.exists() ? configSnap.data() : {};
-      const currentTexts = currentData.texts || {};
-
-      // Atualizar apenas a seção
+      // updateDoc com merge - preserva outros textos
       await updateDoc(configRef, {
-        [`texts.${sectionKey}`]: {
-          ...currentTexts[sectionKey],
-          ...values
-        },
+        [`texts.${sectionKey}`]: values,
         updatedAt: serverTimestamp(),
-        updatedBy: 'admin'
+        updatedBy: 'admin',
       });
 
       setOriginalValues(values);
       setLastSaved(new Date());
-      showToast('Texto salvo com sucesso!', 'success');
+      setToast({ show: true, message: 'Texto salvo com sucesso!', type: 'success' });
+      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     } catch (err) {
       console.error('Erro ao salvar:', err);
-      showToast('Erro ao salvar texto', 'error');
+      setToast({ show: true, message: 'Erro ao salvar texto', type: 'error' });
     } finally {
       setSaving(false);
     }
   };
 
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
-  };
-
   const formatDate = (date) => {
     if (!date) return '';
-    const d = date instanceof Date ? date : new Date(date.seconds * 1000);
+    const d = date instanceof Date ? date : (date.toDate ? date.toDate() : new Date(date.seconds * 1000));
     return d.toLocaleString('pt-BR');
   };
 
@@ -175,11 +198,12 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
 
       {/* Toast */}
       {toast.show && (
-        <div className={`p-3 rounded-lg text-sm font-semibold ${
+        <div className={`p-3 rounded-lg text-sm font-semibold flex items-center gap-2 ${
           toast.type === 'success'
             ? 'bg-green-500/20 text-green-500 border border-green-500/30'
             : 'bg-red-500/20 text-red-500 border border-red-500/30'
         }`}>
+          {toast.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
           {toast.message}
         </div>
       )}
@@ -188,9 +212,9 @@ export default function TextEditor({ sectionKey, fields, showPreview = true }) {
       {!preview && (
         <div className="space-y-4">
           {loadingSection && (
-            <div className="flex items-center gap-2 text-gray-400 text-sm">
+            <div className="flex items-center gap-2 text-gray-400 text-sm p-3 bg-gray-900/50 rounded-lg">
               <Loader2 size={16} className="animate-spin" />
-              Carregando textos salvos...
+              Carregando textos salvos do Firestore...
             </div>
           )}
           {fields.map(field => (

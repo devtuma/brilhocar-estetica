@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
-import { useNavigate } from 'react-router-dom';
-import { Shield, Loader2, AlertCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Shield, Loader2, AlertCircle, ArrowLeft, Home } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -28,6 +28,16 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      {/* Botão Voltar para Home */}
+      <Link
+        to="/"
+        className="absolute top-4 left-4 md:top-6 md:left-6 bg-surface border border-gray-800 hover:border-primary/50 text-white font-semibold px-4 py-2 rounded-xl flex items-center gap-2 text-sm transition-colors"
+      >
+        <ArrowLeft size={16} />
+        <Home size={14} />
+        <span>Voltar para Home</span>
+      </Link>
+
       <div className="w-full max-w-md bg-surface border border-gray-800 rounded-3xl p-8 shadow-2xl">
         <div className="text-center mb-8">
           <div className="bg-gray-900 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-primary">

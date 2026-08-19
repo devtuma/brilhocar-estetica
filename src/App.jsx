@@ -8,6 +8,8 @@ import Home from './pages/Home';
 import Booking from './pages/Booking';
 import Checkin from './pages/Checkin';
 import Admin from './pages/Admin';
+import AdminAccess from './components/AdminAccess';
+import Footer from './components/Footer';
 import AdminSiteTexts from './pages/admin/SiteTexts';
 import AdminPromotions from './pages/admin/Promotions';
 import AdminPixConfig from './pages/admin/PixConfig';
@@ -43,7 +45,22 @@ function ClientLayout({ children }) {
   return (
     <div className="min-h-screen bg-background text-white font-sans pb-24 md:pb-0">
       <header className="sticky top-0 z-50 flex justify-between items-center px-4 md:px-6 py-4 bg-surface border-b border-gray-800 shadow-xl">
-        <Link to="/" className="text-xl md:text-2xl font-black tracking-tight">
+        <Link
+          to="/"
+          onClick={(e) => {
+            // Easter egg: 5 cliques rápidos no logo abre acesso admin
+            if (!window.__adminClickTimes) window.__adminClickTimes = [];
+            const now = Date.now();
+            window.__adminClickTimes = window.__adminClickTimes.filter(t => now - t < 3000);
+            window.__adminClickTimes.push(now);
+            if (window.__adminClickTimes.length >= 5) {
+              window.__adminClickTimes = [];
+              // Disparar evento customizado para AdminAccess
+              window.dispatchEvent(new CustomEvent('adminEasterEgg'));
+            }
+          }}
+          className="text-xl md:text-2xl font-black tracking-tight"
+        >
           <span className="text-primary">Brilho</span>Car
         </Link>
         <nav className="hidden md:flex gap-3 items-center">
@@ -95,6 +112,11 @@ function ClientLayout({ children }) {
           </button>
         )}
       </nav>
+
+      {/* Acesso Admin discreto (chip se logado, easter egg se não) */}
+      <AdminAccess />
+
+      <Footer />
     </div>
   );
 }
