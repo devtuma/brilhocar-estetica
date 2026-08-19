@@ -18,85 +18,123 @@ export default function RescheduleModal({ appointment, onClose }) {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'config', 'main'), (snap) => {
       if (snap.exists()) {
-        const r = snap.data().rescheduleConfig;
+        const data = snap.data();
+        const r = data.rescheduleConfig;
         if (r) setConfig({
           hoursWindow: r.hoursWindow ?? 24,
           retentionPercent: r.retentionPercent ?? 50,
         });
-        if (snap.data().texts?.businessHours) {
-          // Carregar slots baseado no dia da semana selecionado
+      }
+    });
+
+    return () => { unsub(); };
+  }, []);
+
+  // Gerar slots quando a data muda
+  useEffect(() => {
+    if (!newDate) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    const loadSlots = async () => {
+      try {
+        const configSnap = await getDoc(doc(db, 'config', 'main'));
+        if (!configSnap.exists()) {
+          setAvailableSlots([]);
+          return;
         }
-      }
-    });
 
-    // Carregar agendamentos existentes para bloquear horários
-    const unsubApts = onSnapshot(collection(db, 'appointments'), (snap) => {
-      const apts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // gerar slots do dia selecionado
-      if (newDate) generateSlots(newDate, apts);
-    });
+        const data = configSnap.data();
+        const hours = data.businessHours;
+        if (!hours) {
+          setAvailableSlots([]);
+          return;
+        }
 
-    return () => { unsub(); unsubApts(); };
-  }, [newDate]);
+        const date = new Date(newDate + 'T12:00:00');
+        const dow = date.getDay();
+        const weekdayMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const dayKey = weekdayMap[dow];
+        const dayHours = hours[dayKey];
 
-  const generateSlots = (dateStr, existingAppointments = []) => {
-    if (!dateStr) return setAvailableSlots([]);
-    const date = new Date(dateStr + 'T12:00:00');
-    const dow = date.getDay();
-    const weekdayMap = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        if (!dayHours?.active) {
+          setAvailableSlots([]);
+          return;
+        }
 
-    onSnapshot(doc(db, 'config', 'main'), (snap) => {
-      const hours = snap.data()?.texts?.businessHours;
-      if (!hours) return setAvailableSlots([]);
-
-      const dayKey = weekdayMap[dow];
-      const dayHours = hours[dayKey];
-      if (!dayHours?.active) return setAvailableSlots([]);
-
-      // Gerar slots de hora em hora
-      const slots = [];
-      const [oh, om] = dayHours.open.split(':').map(Number);
-      const [ch, cm] = dayHours.close.split(':').map(Number);
-      let openMin = oh * 60 + om;
-      let closeMin = ch * 60 + cm;
-      const duration = appointment.totalDuration || 60;
-
-      const dayBlocked = hours.blockedDates?.[dateStr] || [];
-      const blockedHours = hours.blockedHours?.[dayKey] || [];
-      const blockedRanges = hours.blockedRanges?.[dayKey] || [];
-
-      const occupied = existingAppointments
-        .filter(a => a.date === dateStr && a.status !== 'Cancelado' && a.id !== appointment.id)
-        .map(a => a.time);
-
-      const timeToMinutes = (t) => {
-        const [h, m] = t.split(':').map(Number);
-        return h * 60 + m;
-      };
-
-      for (let m = openMin; m + duration <= closeMin; m += 60) {
-        const h = Math.floor(m / 60);
-        const min = m % 60;
-        const timeSlot = `${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-        if (dayBlocked.includes(dateStr)) continue;
-        if (blockedHours.includes(timeSlot)) continue;
-
-        // Bloqueio por intervalo (novo formato)
-        const slotStart = timeToMinutes(timeSlot);
-        const slotEnd = slotStart + duration;
-        const isInBlockedRange = blockedRanges.some(r => {
-          const bStart = timeToMinutes(r.start);
-          const bEnd = timeToMinutes(r.end);
-          return slotStart < bEnd && bStart < slotEnd;
+        // Buscar agendamentos existentes do dia
+        const aptsSnap = await new Promise((resolve) => {
+          const unsub = onSnapshot(collection(db, 'appointments'), (snap) => {
+            resolve(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            unsub();
+          });
         });
-        if (isInBlockedRange) continue;
 
-        if (occupied.includes(timeSlot)) continue;
-        slots.push(timeSlot);
+        // Gerar slots de hora em hora
+        const slots = [];
+        const [oh, om] = dayHours.open.split(':').map(Number);
+        const [ch, cm] = dayHours.close.split(':').map(Number);
+        const openMin = oh * 60 + om;
+        const closeMin = ch * 60 + cm;
+        const duration = appointment.totalDuration || 60;
+
+        const blockedDates = data.blockedDates || [];
+        const blockedHours = data.blockedHours?.[dayKey] || [];
+        const blockedRanges = data.blockedRanges?.[dayKey] || [];
+
+        const occupied = aptsSnap
+          .filter(a => a.date === newDate && a.status !== 'Cancelado' && a.id !== appointment.id)
+          .map(a => a.time);
+
+        const timeToMinutes = (t) => {
+          const [h, m] = t.split(':').map(Number);
+          return h * 60 + m;
+        };
+
+        const now = new Date();
+        const isToday = new Date(newDate + 'T00:00:00').toDateString() === now.toDateString();
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+        for (let m = openMin; m + duration <= closeMin; m += 60) {
+          const h = Math.floor(m / 60);
+          const min = m % 60;
+          const timeSlot = `${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+
+          // Pular horários passados no dia atual
+          if (isToday && timeToMinutes(timeSlot) <= nowMinutes + 30) continue;
+
+          // Bloqueio por data
+          if (blockedDates.includes(newDate)) continue;
+
+          // Bloqueio por horário
+          if (blockedHours.includes(timeSlot)) continue;
+
+          // Bloqueio por intervalo
+          const slotStart = timeToMinutes(timeSlot);
+          const slotEnd = slotStart + duration;
+          const isInBlockedRange = blockedRanges.some(r => {
+            const bStart = timeToMinutes(r.start);
+            const bEnd = timeToMinutes(r.end);
+            return slotStart < bEnd && bStart < slotEnd;
+          });
+          if (isInBlockedRange) continue;
+
+          // Já ocupado
+          if (occupied.includes(timeSlot)) continue;
+
+          slots.push(timeSlot);
+        }
+
+        setAvailableSlots(slots);
+      } catch (err) {
+        console.error('Erro ao carregar slots:', err);
+        setAvailableSlots([]);
       }
-      setAvailableSlots(slots);
-    });
-  };
+    };
+
+    loadSlots();
+  }, [newDate, appointment.id, appointment.totalDuration]);
 
   // Calcular se está fora da janela e quanto será retido
   const getHoursUntil = () => {
