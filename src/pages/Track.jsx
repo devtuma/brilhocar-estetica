@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { Search, Car, AlertCircle, Loader2, QrCode, X, MessageCircle, Calendar } from 'lucide-react';
+import { Search, Car, AlertCircle, Loader2, QrCode, X, MessageCircle, Calendar, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import QRCode from 'react-qr-code';
 import RescheduleModal from '../components/RescheduleModal';
@@ -97,12 +97,78 @@ export default function Track() {
   const shareQrWhatsapp = () => {
     if (!qrModal) return;
     const { appointment } = qrModal;
-    const phoneNum = (appointment.phone || '').replace(/\D/g, '');
-    const servicesText = (appointment.services || []).map(s => `• ${s.name}`).join('%0A') || getServicesText(appointment);
-    const totalText = getTotalPrice(appointment) ? `%0A*Total:* R$ ${getTotalPrice(appointment).toFixed(2)}` : '';
-    const msg = `Olá ${appointment.name}, segue o QR Code do seu agendamento na BrilhoCar!%0A%0A*OS:* ${appointment.os}%0A*Serviços:*%0A${servicesText}${totalText}%0A*Data:* ${appointment.date} às ${appointment.time}%0A%0AApresente o QR Code na entrada.`;
+    const phoneNum = (appointment.phone || appointment.userCelular || '').replace(/\D/g, '');
+    const servicesText = (appointment.services || []).map(s => `• ${s.name}`).join('\n') || getServicesText(appointment);
+    const totalText = getTotalPrice(appointment) ? `\n*Total:* R$ ${getTotalPrice(appointment).toFixed(2)}` : '';
+    const carInfo = `${appointment.car || 'Veículo'} - ${appointment.plate || ''}`;
+
+    // Mensagem COM DESCRIÇÃO COMPLETA do que é o QR Code
+    const msg = `🔖 *QR Code do Agendamento - BrilhoCar*
+
+Olá ${appointment.name || 'cliente'}! Aqui está o QR Code do seu agendamento:
+
+📋 *Ordem de Serviço:* ${appointment.os}
+🚗 *Veículo:* ${carInfo}
+📅 *Data:* ${appointment.date} às ${appointment.time}
+🛠️ *Serviços:*
+${servicesText}${totalText}
+
+✅ *Este QR Code serve para:*
+• Check-in na recepção da BrilhoCar
+• Identificação rápida do seu veículo
+• Acompanhamento do serviço
+
+⚠️ *IMPORTANTE:* Anexe a imagem do QR Code que você baixou acima nesta conversa para apresentar na entrada da loja.`;
+
+    const encodedMsg = encodeURIComponent(msg);
     const targetPhone = phoneNum || '11999999999';
-    window.open(`https://wa.me/55${targetPhone}?text=${msg}`, '_blank');
+    window.open(`https://wa.me/55${targetPhone}?text=${encodedMsg}`, '_blank');
+  };
+
+  // Função para baixar QR Code como imagem PNG
+  const downloadQrCode = () => {
+    if (!qrModal) return;
+    const svg = document.getElementById('qr-code-svg');
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+
+    img.onload = () => {
+      canvas.width = 600;
+      canvas.height = 700;
+      // Fundo branco
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // QR Code
+      ctx.drawImage(img, 50, 50, 500, 500);
+      // Texto descritivo
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`OS: ${qrModal.os}`, 300, 590);
+      ctx.font = '18px Arial';
+      ctx.fillStyle = '#444444';
+      ctx.fillText(`${qrModal.appointment.car} · ${qrModal.appointment.plate}`, 300, 620);
+      ctx.font = 'italic 14px Arial';
+      ctx.fillStyle = '#888888';
+      ctx.fillText('Apresente na recepção da BrilhoCar', 300, 660);
+
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `QR-BrilhoCar-${qrModal.os}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
+    };
+
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
   return (
@@ -232,17 +298,32 @@ export default function Track() {
               <p className="text-sm text-gray-400 mb-6">Apresente na recepção da BrilhoCar</p>
 
               <div className="bg-white p-4 rounded-2xl inline-block mb-4">
-                <QRCode value={JSON.stringify({ os: qrModal.os, id: qrModal.id })} size={220} />
+                <div id="qr-code-container">
+                  <QRCode
+                    id="qr-code-svg"
+                    value={JSON.stringify({ os: qrModal.os, id: qrModal.id })}
+                    size={220}
+                  />
+                </div>
               </div>
 
               <p className="text-sm text-gray-300 mb-1">
                 OS: <strong className="text-white">{qrModal.os}</strong>
               </p>
-              <p className="text-xs text-gray-500 mb-6">
+              <p className="text-xs text-gray-500 mb-2">
                 {qrModal.appointment.car} · {qrModal.appointment.plate}
+              </p>
+              <p className="text-xs text-gray-400 mb-6 italic">
+                🔖 Este é seu QR Code de check-in. Baixe a imagem e envie pelo WhatsApp.
               </p>
 
               <div className="flex flex-col gap-2">
+                <button
+                  onClick={downloadQrCode}
+                  className="w-full bg-primary text-black font-bold py-3 rounded-xl hover:bg-[#00c853] transition-colors flex items-center justify-center gap-2"
+                >
+                  <Download size={18} /> Baixar QR Code (imagem)
+                </button>
                 <button
                   onClick={shareQrWhatsapp}
                   className="w-full bg-[#25D366] text-black font-bold py-3 rounded-xl hover:bg-[#20b858] transition-colors flex items-center justify-center gap-2"
