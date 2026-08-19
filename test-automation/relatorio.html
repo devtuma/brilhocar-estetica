@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório BrilhoCar</title>
+<style>
+  :root { --primary: #00e676; --bg: #0a0a0a; --surface: #1a1a1a; --text: #fff; --text-dim: #aaa; --error: #ff4444; --warning: #ffaa00; --info: #4a9eff; --success: #00e676; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 30px; max-width: 1400px; margin: 0 auto; }
+  h1 { color: var(--primary); border-bottom: 4px solid var(--primary); padding-bottom: 16px; font-size: 2.5em; margin-bottom: 10px; }
+  h2 { color: var(--primary); margin: 40px 0 20px; font-size: 1.8em; }
+  .timestamp { color: var(--text-dim); font-size: 1em; margin: 4px 0; }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 30px 0; }
+  .summary-card { background: var(--surface); padding: 28px; border-radius: 16px; text-align: center; border: 1px solid #333; transition: all 0.3s; }
+  .summary-card:hover { transform: translateY(-6px); border-color: var(--primary); box-shadow: 0 10px 30px rgba(0,230,118,0.2); }
+  .summary-card .value { font-size: 3.5em; font-weight: 900; color: var(--primary); line-height: 1; }
+  .summary-card.error .value { color: var(--error); }
+  .summary-card.warning .value { color: var(--warning); }
+  .summary-card .label { color: var(--text-dim); margin-top: 12px; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1.5px; font-weight: 600; }
+  .step { padding: 14px 18px; margin: 8px 0; border-radius: 10px; background: var(--surface); border-left: 4px solid #555; transition: all 0.2s; font-family: 'Courier New', monospace; font-size: 0.95em; }
+  .step:hover { transform: translateX(6px); }
+  .step.SUCCESS { border-left-color: var(--success); background: linear-gradient(90deg, rgba(0,230,118,0.12) 0%, var(--surface) 50%); }
+  .step.ERROR { border-left-color: var(--error); background: linear-gradient(90deg, rgba(255,68,68,0.12) 0%, var(--surface) 50%); }
+  .step.WARNING { border-left-color: var(--warning); background: linear-gradient(90deg, rgba(255,170,0,0.12) 0%, var(--surface) 50%); }
+  .step.INFO { border-left-color: var(--info); }
+  .step .icon { display: inline-block; margin-right: 10px; font-size: 1.2em; }
+  .step .details { margin-top: 8px; color: var(--text-dim); font-size: 0.9em; padding-left: 30px; white-space: pre-wrap; }
+  .step .time { color: #666; font-size: 0.8em; margin-top: 4px; padding-left: 30px; }
+  .screenshot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; margin-top: 20px; }
+  .screenshot-card { background: var(--surface); padding: 16px; border-radius: 12px; border: 1px solid #333; transition: all 0.3s; cursor: pointer; }
+  .screenshot-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 15px 40px rgba(0,230,118,0.4); border-color: var(--primary); }
+  .screenshot-card img { width: 100%; border-radius: 8px; border: 1px solid #444; display: block; }
+  .screenshot-card .name { color: var(--primary); font-weight: bold; margin-top: 12px; font-size: 0.95em; text-align: center; padding: 8px; background: rgba(0,230,118,0.05); border-radius: 6px; }
+  .links { background: var(--surface); padding: 30px; border-radius: 16px; margin-top: 40px; border: 1px solid #333; }
+  .links h2 { margin-top: 0; }
+  .links a { color: var(--primary); text-decoration: none; margin: 8px 8px 8px 0; padding: 10px 20px; background: rgba(0,230,118,0.1); border-radius: 10px; display: inline-block; transition: all 0.2s; border: 1px solid transparent; font-weight: 600; }
+  .links a:hover { background: rgba(0,230,118,0.25); transform: translateX(4px); border-color: var(--primary); }
+  .progress-bar { height: 12px; background: #222; border-radius: 6px; margin: 30px 0; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
+  .progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--primary), #00c853); transition: width 1s; box-shadow: 0 0 10px var(--primary); }
+  .progress-label { text-align: center; margin-top: -20px; margin-bottom: 20px; color: var(--primary); font-weight: bold; font-size: 1.2em; }
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 999; justify-content: center; align-items: center; }
+  .modal.active { display: flex; }
+  .modal img { max-width: 90vw; max-height: 90vh; border-radius: 12px; }
+  .modal-close { position: fixed; top: 30px; right: 30px; color: white; font-size: 2em; cursor: pointer; padding: 10px 20px; }
+</style>
+</head>
+<body>
+<h1>📋 Relatório de Testes - BrilhoCar</h1>
+<p class="timestamp">� <strong>Iniciado:</strong> 2026-08-19T13:41:12.818Z</p>
+<p class="timestamp">📅 <strong>Finalizado:</strong> 2026-08-19T13:41:47.989Z</p>
+
+<div class="progress-bar"><div class="fill" style="width: 0%"></div></div>
+<div class="progress-label">Taxa de Sucesso: 0%</div>
+
+<div class="summary">
+  <div class="summary-card"><div class="value">48</div><div class="label">Total Passos</div></div>
+  <div class="summary-card"><div class="value">0</div><div class="label">✅ Sucessos</div></div>
+  <div class="summary-card warning"><div class="value">9</div><div class="label">⚠️ Avisos</div></div>
+  <div class="summary-card error"><div class="value">0</div><div class="label">❌ Erros</div></div>
+  <div class="summary-card"><div class="value">10</div><div class="label">📸 Screenshots</div></div>
+</div>
+
+<h2>📝 Log de Execução (48 entradas)</h2>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>🚀 TESTE E2E COMPLETO - BrilhoCar</strong>
+    
+    <div class="time">⏰ 13:41:12</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>============================================================</strong>
+    
+    <div class="time">⏰ 13:41:12</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Este teste simula 2 clientes tentando agendar o mesmo horário</strong>
+    
+    <div class="time">⏰ 13:41:12</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>para validar a proteção anti-duplo-booking</strong>
+    
+    <div class="time">⏰ 13:41:12</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>
+🔵 USUÁRIO A - Primeiro cliente</strong>
+    
+    <div class="time">⏰ 13:41:12</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>📸 Screenshot: 00-homepage</strong>
+    
+    <div class="time">⏰ 13:41:15</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>
+� Usuario A: Login</strong>
+    
+    <div class="time">⏰ 13:41:15</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario A URL pós-login:</strong>
+    <div class="details">https://brilhocar-estetica.vercel.app/client-login</div>
+    <div class="time">⏰ 13:41:22</div>
+  </div>
+
+  <div class="step WARNING">
+    <span class="icon">⚠️</span>
+    <strong>Usuario A não fez login - redirecionando manualmente para /booking</strong>
+    
+    <div class="time">⏰ 13:41:22</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>📸 Screenshot: usuario-a-01-booking</strong>
+    
+    <div class="time">⏰ 13:41:24</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario A: Selecionar serviço</strong>
+    
+    <div class="time">⏰ 13:41:24</div>
+  </div>
+
+  <div class="step WARNING">
+    <span class="icon">⚠️</span>
+    <strong>Usuario A: Serviço não encontrado</strong>
+    
+    <div class="time">⏰ 13:41:24</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario A: Selecionar veículo</strong>
+    
+    <div class="time">⏰ 13:41:24</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>📸 Screenshot: usuario-a-02-veiculo</strong>
+    
+    <div class="time">⏰ 13:41:25</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario A: Selecionar data futura</strong>
+    
+    <div class="time">⏰ 13:41:25</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario A: Selecionar horário</strong>
+    
+    <div class="time">⏰ 13:41:25</div>
+  </div>
+
+  <div class="step WARNING">
+    <span class="icon">⚠️</span>
+    <strong>Usuario A: Nenhum horário disponível</strong>
+    
+    <div class="time">⏰ 13:41:25</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>📸 Screenshot: usuario-a-03-horario</strong>
+    
+    <div class="time">⏰ 13:41:25</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario A: Submeter agendamento</strong>
+    
+    <div class="time">⏰ 13:41:25</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario A: URL após submit</strong>
+    <div class="details">https://brilhocar-estetica.vercel.app/client-login?returnTo=/booking</div>
+    <div class="time">⏰ 13:41:25</div>
+  </div>
+
+  <div class="step WARNING">
+    <span class="icon">⚠️</span>
+    <strong>Usuario A: ⚠️ Permaneceu em /booking - pode ter dado erro</strong>
+    <div class="details">sem alerta visível</div>
+    <div class="time">⏰ 13:41:25</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>
+🟢 USUÁRIO B - Segundo cliente (mesmo horário)</strong>
+    
+    <div class="time">⏰ 13:41:25</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>
+� Usuario B: Login</strong>
+    
+    <div class="time">⏰ 13:41:27</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario B URL pós-login:</strong>
+    <div class="details">https://brilhocar-estetica.vercel.app/client-login</div>
+    <div class="time">⏰ 13:41:34</div>
+  </div>
+
+  <div class="step WARNING">
+    <span class="icon">⚠️</span>
+    <strong>Usuario B não fez login - redirecionando manualmente para /booking</strong>
+    
+    <div class="time">⏰ 13:41:34</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>📸 Screenshot: usuario-b-01-booking</strong>
+    
+    <div class="time">⏰ 13:41:36</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario B: Selecionar serviço</strong>
+    
+    <div class="time">⏰ 13:41:36</div>
+  </div>
+
+  <div class="step WARNING">
+    <span class="icon">⚠️</span>
+    <strong>Usuario B: Serviço não encontrado</strong>
+    
+    <div class="time">⏰ 13:41:36</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario B: Selecionar veículo</strong>
+    
+    <div class="time">⏰ 13:41:36</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>📸 Screenshot: usuario-b-02-veiculo</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario B: Selecionar data futura</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario B: Selecionar horário</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step WARNING">
+    <span class="icon">⚠️</span>
+    <strong>Usuario B: Nenhum horário disponível</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>📸 Screenshot: usuario-b-03-horario</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario B: Submeter agendamento</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>Usuario B: URL após submit</strong>
+    <div class="details">https://brilhocar-estetica.vercel.app/client-login?returnTo=/booking</div>
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step WARNING">
+    <span class="icon">⚠️</span>
+    <strong>Usuario B: ⚠️ Permaneceu em /booking - pode ter dado erro</strong>
+    <div class="details">sem alerta visível</div>
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>
+============================================================</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>🔒 ANÁLISE ANTI-DUPLO-BOOKING</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>============================================================</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step WARNING">
+    <span class="icon">⚠️</span>
+    <strong>⚠️ Ambos usuários falharam - provavelmente falta cadastrar usuários de teste</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>
+============================================================</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>🔐 ADMIN: Visualizar agendamentos</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>============================================================</strong>
+    
+    <div class="time">⏰ 13:41:37</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>📸 Screenshot: 99-admin-area</strong>
+    
+    <div class="time">⏰ 13:41:43</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>
+📱 VIEW MOBILE</strong>
+    
+    <div class="time">⏰ 13:41:43</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>📸 Screenshot: 97-mobile-home</strong>
+    
+    <div class="time">⏰ 13:41:45</div>
+  </div>
+
+  <div class="step INFO">
+    <span class="icon">🔵</span>
+    <strong>📸 Screenshot: 98-mobile-booking</strong>
+    
+    <div class="time">⏰ 13:41:47</div>
+  </div>
+
+
+<h2>📸 Screenshots (10)</h2>
+<div class="screenshot-grid">
+  
+    <div class="screenshot-card" onclick="document.getElementById('modal').classList.add('active'); document.getElementById('modal-img').src='screenshots/00-homepage.png';">
+      <img src="screenshots/00-homepage.png" alt="00-homepage" loading="lazy" />
+      <div class="name">📷 00-homepage</div>
+    </div>
+  
+    <div class="screenshot-card" onclick="document.getElementById('modal').classList.add('active'); document.getElementById('modal-img').src='screenshots/usuario-a-01-booking.png';">
+      <img src="screenshots/usuario-a-01-booking.png" alt="usuario-a-01-booking" loading="lazy" />
+      <div class="name">📷 usuario-a-01-booking</div>
+    </div>
+  
+    <div class="screenshot-card" onclick="document.getElementById('modal').classList.add('active'); document.getElementById('modal-img').src='screenshots/usuario-a-02-veiculo.png';">
+      <img src="screenshots/usuario-a-02-veiculo.png" alt="usuario-a-02-veiculo" loading="lazy" />
+      <div class="name">📷 usuario-a-02-veiculo</div>
+    </div>
+  
+    <div class="screenshot-card" onclick="document.getElementById('modal').classList.add('active'); document.getElementById('modal-img').src='screenshots/usuario-a-03-horario.png';">
+      <img src="screenshots/usuario-a-03-horario.png" alt="usuario-a-03-horario" loading="lazy" />
+      <div class="name">📷 usuario-a-03-horario</div>
+    </div>
+  
+    <div class="screenshot-card" onclick="document.getElementById('modal').classList.add('active'); document.getElementById('modal-img').src='screenshots/usuario-b-01-booking.png';">
+      <img src="screenshots/usuario-b-01-booking.png" alt="usuario-b-01-booking" loading="lazy" />
+      <div class="name">📷 usuario-b-01-booking</div>
+    </div>
+  
+    <div class="screenshot-card" onclick="document.getElementById('modal').classList.add('active'); document.getElementById('modal-img').src='screenshots/usuario-b-02-veiculo.png';">
+      <img src="screenshots/usuario-b-02-veiculo.png" alt="usuario-b-02-veiculo" loading="lazy" />
+      <div class="name">📷 usuario-b-02-veiculo</div>
+    </div>
+  
+    <div class="screenshot-card" onclick="document.getElementById('modal').classList.add('active'); document.getElementById('modal-img').src='screenshots/usuario-b-03-horario.png';">
+      <img src="screenshots/usuario-b-03-horario.png" alt="usuario-b-03-horario" loading="lazy" />
+      <div class="name">📷 usuario-b-03-horario</div>
+    </div>
+  
+    <div class="screenshot-card" onclick="document.getElementById('modal').classList.add('active'); document.getElementById('modal-img').src='screenshots/99-admin-area.png';">
+      <img src="screenshots/99-admin-area.png" alt="99-admin-area" loading="lazy" />
+      <div class="name">📷 99-admin-area</div>
+    </div>
+  
+    <div class="screenshot-card" onclick="document.getElementById('modal').classList.add('active'); document.getElementById('modal-img').src='screenshots/97-mobile-home.png';">
+      <img src="screenshots/97-mobile-home.png" alt="97-mobile-home" loading="lazy" />
+      <div class="name">📷 97-mobile-home</div>
+    </div>
+  
+    <div class="screenshot-card" onclick="document.getElementById('modal').classList.add('active'); document.getElementById('modal-img').src='screenshots/98-mobile-booking.png';">
+      <img src="screenshots/98-mobile-booking.png" alt="98-mobile-booking" loading="lazy" />
+      <div class="name">📷 98-mobile-booking</div>
+    </div>
+  
+</div>
+
+<div id="modal" class="modal" onclick="this.classList.remove('active')">
+  <div class="modal-close" onclick="document.getElementById('modal').classList.remove('active')">✕</div>
+  <img id="modal-img" src="" />
+</div>
+
+<div class="links">
+  <h2>🔗 Links Úteis</h2>
+  <a href="https://brilhocar-estetica.vercel.app" target="_blank">🌐 Site Produção</a>
+  <a href="https://brilhocar-estetica.vercel.app/booking" target="_blank">📅 Agendar</a>
+  <a href="https://brilhocar-estetica.vercel.app/track" target="_blank">🔍 Acompanhar</a>
+  <a href="https://brilhocar-estetica.vercel.app/login" target="_blank">🔐 Admin</a>
+  <a href="https://console.firebase.google.com/project/brilhocar-estetica-9f14b" target="_blank">📊 Firebase</a>
+</div>
+</body>
+</html>

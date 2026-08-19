@@ -304,6 +304,9 @@ export default function TimeSlotPicker({
     );
   }
 
+  // Estado para tooltip de horário ocupado
+  const [hoveredOccupiedSlot, setHoveredOccupiedSlot] = useState(null);
+
   return (
     <div className="bg-surface border border-gray-800 rounded-2xl p-5">
       {/* Header */}
@@ -332,27 +335,81 @@ export default function TimeSlotPicker({
           {allSlots.map(time => {
             const available = isSlotAvailable(time);
             const isSelected = selectedTime === time;
+            // Encontrar info do agendamento que bloqueia este slot
+            const occupyingBooking = !available ? bookedSlots.find(b => {
+              const bookingStart = timeToMinutes(b.time);
+              const bookingEnd = bookingStart + (b.duration || 60);
+              const slotStart = timeToMinutes(time);
+              const slotEnd = slotStart + appointmentDuration;
+              return slotStart < bookingEnd && slotEnd > bookingStart;
+            }) : null;
 
             return (
-              <button
-                key={time}
-                disabled={!available}
-                onClick={() => handleSelect(time)}
-                className={`
-                  py-3 px-2 rounded-xl text-sm font-semibold transition-all
-                  ${isSelected
-                    ? 'bg-primary text-black'
-                    : available
-                      ? 'bg-gray-800 text-white hover:bg-gray-700 hover:border-gray-600 border border-transparent'
-                      : 'bg-gray-900 text-gray-600 cursor-not-allowed opacity-50'
-                  }
-                `}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  {isSelected && <Check size={14} className="shrink-0" />}
-                  <span>{time}</span>
-                </div>
-              </button>
+              <div key={time} className="relative">
+                <button
+                  disabled={!available}
+                  onClick={() => handleSelect(time)}
+                  onMouseEnter={() => !available && setHoveredOccupiedSlot(time)}
+                  onMouseLeave={() => setHoveredOccupiedSlot(null)}
+                  className={`
+                    w-full py-3 px-2 rounded-xl text-sm font-semibold transition-all relative
+                    ${isSelected
+                      ? 'bg-primary text-black'
+                      : available
+                        ? 'bg-gray-800 text-white hover:bg-gray-700 border border-transparent'
+                        : 'bg-gray-900/50 cursor-not-allowed'
+                    }
+                  `}
+                >
+                  {/* Overlay riscado para horários ocupados */}
+                  {!available && (
+                    <div className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-xl">
+                      {/* Linhas diagonais de "riscado" */}
+                      <div className="absolute inset-0 opacity-30">
+                        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                          <line x1="0" y1="0" x2="100%" y2="100%" stroke="#ef4444" strokeWidth="2" />
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={`flex items-center justify-center gap-1 ${!available ? 'text-gray-500' : ''}`}>
+                    {isSelected && <Check size={14} className="shrink-0" />}
+                    <span className={!available ? 'line-through decoration-red-500/70' : ''}>{time}</span>
+                  </div>
+
+                  {/* Indicador de ocupado */}
+                  {!available && (
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500/80 rounded-full flex items-center justify-center">
+                      <span className="text-[8px] text-white font-bold">✕</span>
+                    </div>
+                  )}
+                </button>
+
+                {/* Tooltip com info do agendamento */}
+                {hoveredOccupiedSlot === time && occupyingBooking && (
+                  <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 border border-red-500/50 rounded-lg shadow-xl whitespace-nowrap">
+                    <div className="text-xs font-bold text-red-400 mb-1">⛔ Horário Ocupado</div>
+                    <div className="text-[10px] text-gray-400 space-y-0.5">
+                      <div>🕐 {occupyingBooking.time}</div>
+                      <div>⏱️ {occupyingBooking.duration || 60} min</div>
+                      {occupyingBooking.pixStatus === 'paid' && (
+                        <div className="text-green-400">✅ Pagamento confirmado</div>
+                      )}
+                      {occupyingBooking.status === 'Aguardando Pagamento' && (
+                        <div className="text-yellow-400">⏳ Aguardando PIX</div>
+                      )}
+                      {['Agendado', 'Veículo Recebido', 'Serviço Iniciado'].includes(occupyingBooking.status) && (
+                        <div className="text-blue-400">📋 {occupyingBooking.status}</div>
+                      )}
+                    </div>
+                    {/* Seta do tooltip */}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
+                      <div className="border-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -370,8 +427,14 @@ export default function TimeSlotPicker({
             <span>Selecionado</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-gray-900 opacity-50"></div>
-            <span>Ocupado</span>
+            <div className="w-3 h-3 rounded bg-red-500/30 border border-red-500/50 relative overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                  <line x1="0" y1="0" x2="100%" y2="100%" stroke="#ef4444" strokeWidth="2" />
+                </svg>
+              </div>
+            </div>
+            <span className="text-red-400/70">Ocupado</span>
           </div>
         </div>
         <p className="text-xs text-gray-500 mt-3">
