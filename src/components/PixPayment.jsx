@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Copy, CheckCircle, Clock, AlertCircle, QrCode, X, RefreshCw } from 'lucide-react';
+import { Copy, CheckCircle, Clock, AlertCircle, QrCode, X, RefreshCw, Download } from 'lucide-react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 
@@ -139,6 +139,48 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
     }).format(value || 0);
   };
 
+  // Baixar QR Code PIX como imagem PNG
+  const downloadPixQrCode = async () => {
+    if (!paymentData?.qrCode) return;
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 600;
+        canvas.height = 700;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 50, 50, 500, 500);
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('PAGAMENTO PIX', 300, 595);
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText(`R$ ${formatCurrency(paymentData.pixAmount || paymentData.amount)}`, 300, 630);
+        ctx.font = 'italic 14px Arial';
+        ctx.fillStyle = '#888888';
+        ctx.fillText('BrilhoCar Estética Automotiva', 300, 665);
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `PIX-BrilhoCar-${formatCurrency(paymentData.pixAmount || paymentData.amount)}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      };
+      img.src = paymentData.qrCode.startsWith('data:')
+        ? paymentData.qrCode
+        : `data:image/png;base64,${paymentData.qrCode}`;
+    } catch (err) {
+      console.error('Erro ao baixar QR:', err);
+    }
+  };
+
   // Verificar se esta usando sandbox
   const isSandbox = window.location.hostname.includes('localhost') ||
     window.location.hostname.includes('vercel');
@@ -224,7 +266,7 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
 
       {/* QR Code */}
       {paymentData?.qrCode && !manualMode && (
-        <div className="bg-white rounded-3xl p-6 mb-6 flex justify-center">
+        <div className="bg-white rounded-3xl p-6 mb-4 flex justify-center">
           <div className="relative">
             <img
               src={paymentData.qrCode.startsWith('data:')
@@ -239,6 +281,17 @@ export default function PixPayment({ appointmentId, onSuccess, onCancel }) {
             />
           </div>
         </div>
+      )}
+
+      {/* Botao de Download do QR Code PIX */}
+      {paymentData?.qrCode && !manualMode && (
+        <button
+          onClick={downloadPixQrCode}
+          className="w-full mb-6 px-6 py-3 bg-gray-800 text-gray-300 font-semibold rounded-xl hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 text-sm"
+        >
+          <Download size={16} />
+          Baixar QR Code PIX (imagem)
+        </button>
       )}
 
       {/* Modo manual (se QR code falhar) */}
