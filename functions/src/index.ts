@@ -1110,7 +1110,7 @@ export const findAppointmentByOS = functions.https.onCall(async (data, context) 
   }
 
   try {
-    let docRef;
+    let docRef: FirebaseFirestore.DocumentReference | null = null;
 
     if (appointmentId) {
       docRef = db.collection('appointments').doc(appointmentId);
@@ -1128,31 +1128,35 @@ export const findAppointmentByOS = functions.https.onCall(async (data, context) 
       docRef = snapshot.docs[0].ref;
     }
 
-    const doc = await docRef.get();
+    if (!docRef) {
+      throw new functions.https.HttpsError('invalid-argument', 'OS ou appointmentId é obrigatório');
+    }
 
-    if (!doc.exists) {
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
       return { success: false, error: 'Agendamento não encontrado' };
     }
 
-    const data = doc.data();
+    const appt = docSnap.data()!;
     return {
       success: true,
       appointment: {
-        id: doc.id,
-        os: data.os,
-        userName: data.userName || data.name,
-        userCelular: data.userCelular || data.celular,
-        car: data.car,
-        plate: data.plate,
-        date: data.date,
-        time: data.time,
-        services: data.services,
-        serviceNames: data.serviceNames,
-        totalPrice: data.totalPrice,
-        status: data.status,
-        pixStatus: data.pixStatus,
-        pixAmount: data.pixAmount,
-        createdAt: data.createdAt?.toDate?.()?.toISOString()
+        id: docSnap.id,
+        os: appt.os,
+        userName: appt.userName || appt.name,
+        userCelular: appt.userCelular || appt.celular,
+        car: appt.car,
+        plate: appt.plate,
+        date: appt.date,
+        time: appt.time,
+        services: appt.services,
+        serviceNames: appt.serviceNames,
+        totalPrice: appt.totalPrice,
+        status: appt.status,
+        pixStatus: appt.pixStatus,
+        pixAmount: appt.pixAmount,
+        createdAt: appt.createdAt?.toDate?.()?.toISOString()
       }
     };
 
@@ -1178,14 +1182,15 @@ export const addTimelineEntry = functions.https.onCall(async (data, context) => 
 
   try {
     const appointmentRef = db.collection('appointments').doc(appointmentId);
-    const doc = await appointmentRef.get();
+    const docSnap = await appointmentRef.get();
 
-    if (!doc.exists) {
+    if (!docSnap.exists) {
       throw new functions.https.HttpsError('not-found', 'Agendamento não encontrado');
     }
 
+    const appt = docSnap.data()!;
     const entry = {
-      status: status || doc.data().status,
+      status: status || appt.status,
       date: new Date().toISOString(),
       note: note || null
     };
