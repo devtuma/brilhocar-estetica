@@ -15,17 +15,24 @@ export default function Schedule() {
 
   // Carregar agendamentos em tempo real
   useEffect(() => {
-    const q = query(
-      collection(db, 'appointments'),
-      orderBy('date', 'desc'),
-      orderBy('time', 'desc')
-    );
+    // SEM orderBy para evitar erro de índice composto
+    // Ordenamos no cliente
+    const q = query(collection(db, 'appointments'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+
+      // Ordenar no cliente: por data desc, depois horário desc
+      data.sort((a, b) => {
+        if (a.date !== b.date) {
+          return (b.date || '').localeCompare(a.date || '');
+        }
+        return (b.time || '').localeCompare(a.time || '');
+      });
+
       setAppointments(data);
 
       // Extrair tipos de serviços únicos
@@ -33,6 +40,9 @@ export default function Schedule() {
         (a.services || []).map(s => typeof s === 'string' ? s : s.name)
       ))];
       setServiceTypes(types.sort());
+      setLoading(false);
+    }, (err) => {
+      console.error('Erro ao carregar agendamentos:', err);
       setLoading(false);
     });
 
