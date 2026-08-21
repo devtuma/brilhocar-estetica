@@ -5,13 +5,17 @@ import { Search, Car, AlertCircle, Loader2, QrCode, X, MessageCircle, Calendar, 
 import { Link } from 'react-router-dom';
 import QRCode from 'react-qr-code';
 import RescheduleModal from '../components/RescheduleModal';
+import { useTenant } from '../contexts/TenantContext';
 
 export default function Track() {
+  const { tenant } = useTenant();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [appointments, setAppointments] = useState([]);
   const [qrModal, setQrModal] = useState(null); // {os, id} quando aberto
   const [rescheduleModal, setRescheduleModal] = useState(null);
+
+  const companyName = tenant?.displayName || 'BrilhoCar';
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -103,7 +107,7 @@ export default function Track() {
     const carInfo = `${appointment.car || 'Veículo'} - ${appointment.plate || ''}`;
 
     // Mensagem COM DESCRIÇÃO COMPLETA do que é o QR Code
-    const msg = `🔖 *QR Code do Agendamento - BrilhoCar*
+    const msg = `🔖 *QR Code do Agendamento - ${companyName}*
 
 Olá ${appointment.name || 'cliente'}! Aqui está o QR Code do seu agendamento:
 
@@ -114,7 +118,7 @@ Olá ${appointment.name || 'cliente'}! Aqui está o QR Code do seu agendamento:
 ${servicesText}${totalText}
 
 ✅ *Este QR Code serve para:*
-• Check-in na recepção da BrilhoCar
+• Check-in na recepção da ${companyName}
 • Identificação rápida do seu veículo
 • Acompanhamento do serviço
 
@@ -154,13 +158,13 @@ ${servicesText}${totalText}
       ctx.fillText(`${qrModal.appointment.car} · ${qrModal.appointment.plate}`, 300, 620);
       ctx.font = 'italic 14px Arial';
       ctx.fillStyle = '#888888';
-      ctx.fillText('Apresente na recepção da BrilhoCar', 300, 660);
+      ctx.fillText(`Apresente na recepção da ${companyName}`, 300, 660);
 
       canvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `QR-BrilhoCar-${qrModal.os}.png`;
+        link.download = `QR-${companyName.replace(/\s/g, '')}-${qrModal.os}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -295,7 +299,7 @@ ${servicesText}${totalText}
                 <QrCode className="text-primary" size={24} />
               </div>
               <h3 className="text-xl font-black text-white mb-1">Seu QR Code</h3>
-              <p className="text-sm text-gray-400 mb-6">Apresente na recepção da BrilhoCar</p>
+              <p className="text-sm text-gray-400 mb-6">Apresente na recepção da {companyName}</p>
 
               <div className="bg-white p-4 rounded-2xl inline-block mb-4">
                 <div id="qr-code-container">

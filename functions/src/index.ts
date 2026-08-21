@@ -1206,3 +1206,119 @@ export const addTimelineEntry = functions.https.onCall(async (data, context) => 
     throw new functions.https.HttpsError('internal', error.message || 'Erro ao atualizar timeline');
   }
 });
+
+/**
+ * Inicializar tenant padrão no Firestore
+ * Cria o documento de tenant 'brilhocar' se não existir
+ */
+export const initializeDefaultTenant = functions.https.onCall(async (_data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+  }
+
+  // Verificar se é admin
+  const adminDoc = await db.collection('admins').doc(context.auth.uid).get();
+  if (!adminDoc.exists) {
+    throw new functions.https.HttpsError('permission-denied', 'Apenas admin pode executar');
+  }
+
+  const tenantId = 'brilhocar';
+
+  // Verificar se já existe
+  const existing = await db.collection('tenants').doc(tenantId).get();
+
+  if (existing.exists) {
+    return {
+      success: true,
+      message: 'Tenant padrão já existe',
+      tenantId
+    };
+  }
+
+  // Criar tenant padrão
+  const defaultTenant = {
+    id: tenantId,
+    displayName: 'BrilhoCar Estética Automotiva',
+    logoText: 'BrilhoCar',
+    primaryColor: '#00e676',
+    primaryHover: '#00c853',
+    accentColor: '#D4AF37',
+    backgroundColor: '#0a0a0f',
+    surfaceColor: '#151515',
+    logoUrl: '',
+    contact: {
+      email: 'contato@brilhocar.com',
+      phone: '(11) 98131-2143',
+      whatsapp: '5511981312143',
+      address: 'Mauá, SP',
+      instagram: '@brilhocar',
+      facebook: 'BrilhoCar',
+      city: 'Mauá'
+    },
+    pix: {
+      AsaasAPIKey: '',
+      walletId: '',
+      environment: 'production'
+    },
+    firebaseConfig: {
+      apiKey: '',
+      authDomain: '',
+      projectId: 'brilhocar-estetica-9f14b',
+      storageBucket: '',
+      messagingSenderId: '',
+      appId: ''
+    },
+    status: 'active',
+    plan: 'pro',
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+
+  await db.collection('tenants').doc(tenantId).set(defaultTenant);
+
+  console.log(`[initializeDefaultTenant] Tenant padrão '${tenantId}' criado`);
+
+  return {
+    success: true,
+    message: 'Tenant padrão criado com sucesso!',
+    tenantId
+  };
+});
+
+/**
+ * Buscar configuração de tenant (para clientes)
+ */
+export const getTenantConfig = functions.https.onCall(async (data) => {
+  const { tenantId } = data;
+
+  if (!tenantId) {
+    throw new functions.https.HttpsError('invalid-argument', 'tenantId é obrigatório');
+  }
+
+  try {
+    const docSnap = await db.collection('tenants').doc(tenantId).get();
+
+    if (!docSnap.exists) {
+      return { success: false, error: 'Tenant não encontrado' };
+    }
+
+    const tenant = docSnap.data();
+
+    // Não retornar dados sensíveis
+    return {
+      success: true,
+      tenant: {
+        id: docSnap.id,
+        displayName: tenant?.displayName,
+        logoText: tenant?.logoText,
+        primaryColor: tenant?.primaryColor,
+        accentColor: tenant?.accentColor,
+        contact: tenant?.contact,
+        status: tenant?.status
+      }
+    };
+  } catch (error: any) {
+    console.error('[getTenantConfig] Erro:', error);
+    throw new functions.https.HttpsError('internal', error.message || 'Erro ao buscar tenant');
+  }
+});

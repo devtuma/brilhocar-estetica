@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from 're
 import { Home as HomeIcon, CalendarPlus, LayoutDashboard, QrCode, Search, LogOut } from 'lucide-react';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
+import { TenantProvider, useTenant } from './contexts/TenantContext';
 
 import Home from './pages/Home';
 import Booking from './pages/Booking';
@@ -20,6 +21,7 @@ import AdminHistorico from './pages/admin/Historico';
 import AdminReagendamentos from './pages/admin/Reagendamentos';
 import AdminConfiguracoes from './pages/admin/Configuracoes';
 import Schedule from './pages/admin/Schedule';
+import Branding from './pages/admin/Branding';
 import Login from './pages/Login';
 import Track from './pages/Track';
 import ClientLogin from './pages/ClientLogin';
@@ -28,8 +30,17 @@ import PagamentoPix from './pages/PagamentoPix';
 import ProtectedRoute from './components/ProtectedRoute';
 import ClientProtectedRoute from './components/ClientProtectedRoute';
 
+// Componente wrapper que usa o TenantContext
+function BrandingWrapper({ children }) {
+  const { tenant } = useTenant();
+
+  // O tema já é aplicado via CSS variables no TenantProvider
+  return children;
+}
+
 function ClientLayout({ children }) {
   const location = useLocation();
+  const { tenant } = useTenant();
   const [user, setUser] = useState(null);
   const isActive = (path) => location.pathname === path;
 
@@ -62,7 +73,7 @@ function ClientLayout({ children }) {
           }}
           className="text-xl md:text-2xl font-black tracking-tight"
         >
-          <span className="text-primary">Brilho</span>Car
+          <span className="text-primary">{tenant.logoText || 'BrilhoCar'}</span>
         </Link>
         <nav className="hidden md:flex gap-3 items-center">
           <Link to="/" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Início</Link>
@@ -183,32 +194,39 @@ function AdminLayout({ children }) {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Rotas Públicas */}
-        <Route path="/" element={<ClientLayout><Home /></ClientLayout>} />
-        <Route path="/client-login" element={<ClientLayout><ClientLogin /></ClientLayout>} />
-        <Route path="/signup" element={<ClientLayout><Signup /></ClientLayout>} />
-        <Route path="/login" element={<Login />} />
+      <TenantProvider>
+        <BrandingWrapper>
+          <Routes>
+            {/* Rotas Públicas */}
+            <Route path="/" element={<ClientLayout><Home /></ClientLayout>} />
+            <Route path="/client-login" element={<ClientLayout><ClientLogin /></ClientLayout>} />
+            <Route path="/signup" element={<ClientLayout><Signup /></ClientLayout>} />
+            <Route path="/login" element={<Login />} />
 
-        {/* Rotas Privadas (Clientes) */}
-        <Route path="/booking" element={<ClientProtectedRoute><ClientLayout><Booking /></ClientLayout></ClientProtectedRoute>} />
-        <Route path="/pagamento/:id" element={<ClientProtectedRoute><ClientLayout><PagamentoPix /></ClientLayout></ClientProtectedRoute>} />
-        <Route path="/track" element={<ClientProtectedRoute><ClientLayout><Track /></ClientLayout></ClientProtectedRoute>} />
+            {/* Rotas Privadas (Clientes) */}
+            <Route path="/booking" element={<ClientProtectedRoute><ClientLayout><Booking /></ClientLayout></ClientProtectedRoute>} />
+            <Route path="/pagamento/:id" element={<ClientProtectedRoute><ClientLayout><PagamentoPix /></ClientLayout></ClientProtectedRoute>} />
+            <Route path="/track" element={<ClientProtectedRoute><ClientLayout><Track /></ClientLayout></ClientProtectedRoute>} />
 
-        {/* Rotas Privadas (Admin/Operador) */}
-        <Route path="/admin" element={<ProtectedRoute><AdminLayout><Admin /></AdminLayout></ProtectedRoute>} />
-        <Route path="/admin/textos" element={<ProtectedRoute><AdminLayout><AdminSiteTexts /></AdminLayout></ProtectedRoute>} />
-        <Route path="/admin/promocoes" element={<ProtectedRoute><AdminLayout><AdminPromotions /></AdminLayout></ProtectedRoute>} />
-        <Route path="/admin/pix" element={<ProtectedRoute><AdminLayout><AdminPixConfig /></AdminLayout></ProtectedRoute>} />
-        <Route path="/admin/horarios" element={<ProtectedRoute><AdminLayout><AdminSchedule /></AdminLayout></ProtectedRoute>} />
-        <Route path="/admin/servicos" element={<ProtectedRoute><AdminLayout><AdminServices /></AdminLayout></ProtectedRoute>} />
-        <Route path="/admin/analytics" element={<ProtectedRoute><AdminLayout><AdminAnalytics /></AdminLayout></ProtectedRoute>} />
-        <Route path="/admin/historico" element={<ProtectedRoute><AdminLayout><AdminHistorico /></AdminLayout></ProtectedRoute>} />
-        <Route path="/admin/reagendamentos" element={<ProtectedRoute><AdminLayout><AdminReagendamentos /></AdminLayout></ProtectedRoute>} />
-        <Route path="/admin/configuracoes" element={<ProtectedRoute><AdminLayout><AdminConfiguracoes /></AdminLayout></ProtectedRoute>} />
-        <Route path="/admin/trabalhos" element={<ProtectedRoute><AdminLayout><Schedule /></AdminLayout></ProtectedRoute>} />
-        <Route path="/checkin" element={<ProtectedRoute><AdminLayout><Checkin /></AdminLayout></ProtectedRoute>} />
-      </Routes>
+            {/* Rotas Privadas (Admin/Operador) */}
+            <Route path="/admin" element={<ProtectedRoute><AdminLayout><Admin /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/textos" element={<ProtectedRoute><AdminLayout><AdminSiteTexts /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/promocoes" element={<ProtectedRoute><AdminLayout><AdminPromotions /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/pix" element={<ProtectedRoute><AdminLayout><AdminPixConfig /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/horarios" element={<ProtectedRoute><AdminLayout><AdminSchedule /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/servicos" element={<ProtectedRoute><AdminLayout><AdminServices /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/analytics" element={<ProtectedRoute><AdminLayout><AdminAnalytics /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/historico" element={<ProtectedRoute><AdminLayout><AdminHistorico /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/reagendamentos" element={<ProtectedRoute><AdminLayout><AdminReagendamentos /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/configuracoes" element={<ProtectedRoute><AdminLayout><AdminConfiguracoes /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/trabalhos" element={<ProtectedRoute><AdminLayout><Schedule /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/branding" element={<ProtectedRoute><AdminLayout><Branding /></AdminLayout></ProtectedRoute>} />
+            <Route path="/checkin" element={<ProtectedRoute><AdminLayout><Checkin /></AdminLayout></ProtectedRoute>} />
+          </Routes>
+          <AdminAccess />
+          <Footer />
+        </BrandingWrapper>
+      </TenantProvider>
     </BrowserRouter>
   );
 }

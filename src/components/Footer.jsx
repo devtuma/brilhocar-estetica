@@ -1,10 +1,12 @@
+import { useTenant } from '../contexts/TenantContext';
 import { useTexts } from '../hooks/useConfig';
 import { MapPin, Phone, Instagram, Facebook, Mail, MessageCircle } from 'lucide-react';
 
 export default function Footer() {
+  const { tenant } = useTenant();
   const { texts } = useTexts();
 
-  // SEMPRE usar defaults se vazio, pra nunca aparecer "Rua Exemplo"
+  // Usar dados do tenant ou texts ou defaults
   const defaults = {
     address: 'R. Pindamonhangaba, 178',
     phone: '11981312143',
@@ -14,14 +16,18 @@ export default function Footer() {
     email: 'contato@brilhocar.com',
   };
 
+  // Prioridade: texts > tenant > defaults
   const footer = {
-    address: texts?.footer?.address || defaults.address,
-    phone: texts?.footer?.phone || defaults.phone,
-    whatsapp: texts?.footer?.whatsapp || defaults.whatsapp,
-    instagram: texts?.footer?.instagram || defaults.instagram,
-    facebook: texts?.footer?.facebook || defaults.facebook,
-    email: texts?.footer?.email || defaults.email,
+    address: texts?.footer?.address || tenant?.contact?.address || defaults.address,
+    phone: texts?.footer?.phone || tenant?.contact?.phone || defaults.phone,
+    whatsapp: texts?.footer?.whatsapp || tenant?.contact?.whatsapp || defaults.whatsapp,
+    instagram: texts?.footer?.instagram || tenant?.contact?.instagram || defaults.instagram,
+    facebook: texts?.footer?.facebook || tenant?.contact?.facebook || defaults.facebook,
+    email: texts?.footer?.email || tenant?.contact?.email || defaults.email,
   };
+
+  const displayName = tenant?.displayName || 'BrilhoCar';
+  const logoText = tenant?.logoText || 'BrilhoCar';
 
   const whatsappLink = footer.whatsapp
     ? `https://wa.me/${String(footer.whatsapp).replace(/\D/g, '')}`
@@ -41,10 +47,10 @@ export default function Footer() {
           {/* Sobre */}
           <div>
             <h3 className="text-xl font-black text-white mb-3">
-              <span className="text-primary">Brilho</span>Car
+              <span className="text-primary">{logoText}</span>
             </h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Estética automotiva premium. Devolvemos o brilho original do seu veículo
+              {displayName}. Estética automotiva premium. Devolvemos o brilho original do seu veículo
               com produtos de alta performance e equipe especializada.
             </p>
           </div>
@@ -125,7 +131,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-6 text-center text-xs text-gray-500">
-          <p>© {new Date().getFullYear()} BrilhoCar Estética Automotiva. Todos os direitos reservados.</p>
+          <p>© {new Date().getFullYear()} {displayName}. Todos os direitos reservados.</p>
         </div>
       </div>
     </footer>

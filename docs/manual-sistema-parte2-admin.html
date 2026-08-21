@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual Admin - BrilhoCar Estética Automotiva</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0b0b0f;
+      --bg-surface: #151515;
+      --bg-card: #1a1a1a;
+      --primary: #00e676;
+      --accent: #D4AF37;
+      --text: #ffffff;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --border: #2a2a2a;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --info: #3b82f6;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+    .header {
+      background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-dark) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 0;
+      margin-bottom: 3rem;
+    }
+
+    .header-content { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+
+    .logo { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .logo-icon { width: 60px; height: 60px; background: linear-gradient(135deg, var(--accent), #b8860b); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .logo-text { font-size: 1.5rem; font-weight: 800; }
+    .logo-text span { color: var(--accent); }
+
+    .header h1 { font-size: 2.5rem; font-weight: 900; margin-bottom: 0.5rem; }
+    .header p { color: var(--text-secondary); font-size: 1.1rem; }
+
+    .badge { display: inline-block; padding: 0.5rem 1rem; background: var(--accent); color: #000; font-weight: 700; font-size: 0.75rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+
+    .section { margin-bottom: 4rem; scroll-margin-top: 2rem; }
+    .section-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .section-icon { width: 48px; height: 48px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .section-title { font-size: 1.75rem; font-weight: 800; }
+    .section-subtitle { color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem; }
+
+    .card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .card-icon { width: 40px; height: 40px; background: var(--bg-card); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .card-title { font-size: 1.1rem; font-weight: 700; }
+
+    .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+    .menu-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; text-align: center; transition: all 0.2s; cursor: pointer; text-decoration: none; color: var(--text); }
+    .menu-item:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .menu-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+    .menu-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem; }
+    .menu-desc { font-size: 0.75rem; color: var(--text-muted); }
+
+    .steps { counter-reset: step; }
+    .step { position: relative; padding-left: 3.5rem; margin-bottom: 1.5rem; }
+    .step::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; width: 2.5rem; height: 2.5rem; background: var(--accent); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .step-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .step-content { color: var(--text-secondary); }
+
+    .screenshot { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; text-align: center; margin: 1.5rem 0; }
+    .screenshot-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
+    .screenshot-placeholder { background: linear-gradient(135deg, var(--bg-surface), var(--bg-card)); border-radius: 8px; padding: 3rem; border: 2px dashed var(--border); }
+    .screenshot-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+
+    .alert { padding: 1rem 1.25rem; border-radius: 12px; margin: 1rem 0; display: flex; align-items: flex-start; gap: 0.75rem; }
+    .alert-info { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); }
+    .alert-warning { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .alert-success { background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); }
+    .alert-icon { font-size: 1.25rem; flex-shrink: 0; }
+    .alert-title { font-weight: 600; margin-bottom: 0.25rem; }
+    .alert-content { font-size: 0.9rem; opacity: 0.9; }
+
+    .table-wrapper { overflow-x: auto; margin: 1.5rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--bg-card); font-weight: 600; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    tr:hover { background: var(--bg-card); }
+
+    .feature-list { margin: 1rem 0; }
+    .feature-item { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
+    .feature-item:last-child { border-bottom: none; }
+    .feature-icon { width: 24px; height: 24px; background: var(--primary); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; }
+    .feature-text { flex: 1; }
+    .feature-title { font-weight: 600; margin-bottom: 0.25rem; }
+    .feature-desc { font-size: 0.85rem; color: var(--text-secondary); }
+
+    .status-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    .status-active { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+    .status-inactive { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+    code { background: var(--bg-card); padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
+
+    .footer { text-align: center; padding: 3rem 0; margin-top: 4rem; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.875rem; }
+
+    @media print { body { background: white; color: black; } .header { background: #f3f4f6; border-bottom: 2px solid #e5e7eb; } .card { background: #f9fafb; border: 1px solid #e5e7eb; } }
+    .page-break { page-break-after: always; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-content">
+    <div class="logo">
+      <div class="logo-icon">👑</div>
+      <div class="logo-text">Painel <span>Admin</span></div>
+    </div>
+    <span class="badge">Manual do Administrador</span>
+    <h1>Manual do Painel Administrativo</h1>
+    <p>Guia completo para gerenciar agendamentos, serviços, horários e configurações</p>
+  </div>
+</header>
+
+<div class="container">
+
+<!-- ACESSO AO PAINEL -->
+<section class="section" id="acesso">
+  <div class="section-header">
+    <div class="section-icon">🔐</div>
+    <div>
+      <h2 class="section-title">Acesso ao Painel</h2>
+      <p class="section-subtitle">Como fazer login e ativar permissões de administrador</p>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-title">Passo 1: Acessar a página de Login</div>
+      <div class="step-content">
+        <p>Navegue até <code>/login</code> no site. Você verá a tela de autenticação do Firebase.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">Passo 2: Fazer login com Google</div>
+      <div class="step-content">
+        <p>Clique no botão "Continuar com Google" e selecione sua conta. Isso usa Firebase Authentication.</p>
+        <div class="alert alert-info">
+          <span class="alert-icon">ℹ️</span>
+          <div>
+            <div class="alert-title">Conta Google</div>
+            <div class="alert-content">O sistema usa autenticação via Google. Qualquer pessoa com conta Google pode fazer login, mas apenas admins têm acesso completo.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">Passo 3: Acessar /admin</div>
+      <div class="step-content">
+        <p>Após login, acesse <code>/admin</code> na URL. Você verá o painel administrativo.</p>
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            <div class="alert-title">Primeiro Acesso</div>
+            <div class="alert-content">Na primeira vez, você verá um aviso amarelo pedindo para "Ativar Permissões Admin". Clique no botão para se tornar admin.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">Passo 4: Bootstrap Admin</div>
+      <div class="step-content">
+        <p>O sistema chama uma Cloud Function que registra seu UID no Firestore na collection <code>admins</code>. Após confirmar, recarregue a página.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="screenshot">
+    <div class="screenshot-label">TELA: Login</div>
+    <div class="screenshot-placeholder">
+      <div class="screenshot-icon">🔑</div>
+      <p><strong>Login.jsx</strong></p>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">Autenticação via Firebase + Google</p>
+    </div>
+  </div>
+</section>
+
+<!-- MENU PRINCIPAL -->
+<section class="section" id="menu">
+  <div class="section-header">
+    <div class="section-icon">📋</div>
+    <div>
+      <h2 class="section-title">Menu Principal</h2>
+      <p class="section-subtitle">Todas as funcionalidades disponíveis no painel</p>
+    </div>
+  </div>
+
+  <div class="menu-grid">
+    <div class="menu-item">
+      <div class="menu-icon">📅</div>
+      <div class="menu-title">Horários</div>
+      <div class="menu-desc">Dias e horários disponíveis</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">✨</div>
+      <div class="menu-title">Serviços</div>
+      <div class="menu-desc">Preços, duração e descrição</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">🌐</div>
+      <div class="menu-title">Textos do Site</div>
+      <div class="menu-desc">Editar textos e banners</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">🎁</div>
+      <div class="menu-title">Promoções</div>
+      <div class="menu-desc">Black Friday, Natal, etc</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">💳</div>
+      <div class="menu-title">Configurar PIX</div>
+      <div class="menu-desc">Gateway de pagamento</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">📊</div>
+      <div class="menu-title">Analytics</div>
+      <div class="menu-desc">Métricas e gráficos</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">📋</div>
+      <div class="menu-title">Agenda</div>
+      <div class="menu-desc">Controle de trabalhos</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">📜</div>
+      <div class="menu-title">Histórico</div>
+      <div class="menu-desc">Logs e exclusões</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">🔄</div>
+      <div class="menu-title">Reagendamentos</div>
+      <div class="menu-desc">Pedidos pendentes</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">⚙️</div>
+      <div class="menu-title">Configurações</div>
+      <div class="menu-desc">Regras do sistema</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">📷</div>
+      <div class="menu-title">Check-in</div>
+      <div class="menu-desc">Escanear QR Code</div>
+    </div>
+  </div>
+</section>
+
+<div class="page-break"></div>
+
+<!-- HORÁRIOS -->
+<section class="section" id="horarios">
+  <div class="section-header">
+    <div class="section-icon">📅</div>
+    <div>
+      <h2 class="section-title">Horários</h2>
+      <p class="section-subtitle">Configurar dias e horários de funcionamento</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">⏰</div>
+      <h3 class="card-title">Configuração de Horários</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      Na aba de Horários, você configura:
+    </p>
+
+    <div class="feature-list">
+      <div class="feature-item">
+        <div class="feature-icon">☀️</div>
+        <div class="feature-text">
+          <div class="feature-title">Horário de Funcionamento</div>
+          <div class="feature-desc">Defina o horário de abertura e fechamento para cada dia da semana</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">❌</div>
+        <div class="feature-text">
+          <div class="feature-title">Dias Fechados</div>
+          <div class="feature-desc">Bloqueie dias específicos (feriados, férias, etc.)</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-text">
+          <div class="feature-title">Intervalos Bloqueados</div>
+          <div class="feature-desc">Bloqueie períodos específicos durante o dia (almoço, etc.)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screenshot">
+      <div class="screenshot-label">TELA: Configuração de Horários</div>
+      <div class="screenshot-placeholder">
+        <div class="screenshot-icon">🕐</div>
+        <p><strong>Schedule.jsx</strong></p>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Grade semanal com horários editáveis</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVIÇOS -->
+<section class="section" id="servicos">
+  <div class="section-header">
+    <div class="section-icon">✨</div>
+    <div>
+      <h2 class="section-title">Serviços</h2>
+      <p class="section-subtitle">Gerenciar catálogo de serviços oferecidos</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📝</div>
+      <h3 class="card-title">Cadastro de Serviços</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      Cada serviço possui os seguintes campos:
+    </p>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Campo</th>
+            <th>Descrição</th>
+            <th>Exemplo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Nome</strong></td>
+            <td>Nome do serviço</td>
+            <td>Polimento Técnico</td>
+          </tr>
+          <tr>
+            <td><strong>Preço Base</strong></td>
+            <td>Valor cobrado</td>
+            <td>R$ 350,00</td>
+          </tr>
+          <tr>
+            <td><strong>Duração</strong></td>
+            <td>Tempo estimado (minutos)</td>
+            <td>180 min</td>
+          </tr>
+          <tr>
+            <td><strong>Descrição</strong></td>
+            <td>Texto explicativo</td>
+            <td>Remoção de riscos...</td>
+          </tr>
+          <tr>
+            <td><strong>Ícone</strong></td>
+            <td>Ícone exibido na listagem</td>
+            <td>Sparkles</td>
+          </tr>
+          <tr>
+            <td><strong>Destaque</strong></td>
+            <td>Marcar como serviço em destaque</td>
+            <td>Sim/Não</td>
+          </tr>
+          <tr>
+            <td><strong>Ativo</strong></td>
+            <td>Se aparece para clientes</td>
+            <td>Sim/Não</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-success">
+      <span class="alert-icon">💡</span>
+      <div>
+        <div class="alert-title">Dica</div>
+        <div class="alert-content">Marque serviços como "Destaque" para eles aparecerem com badge especial e borda dourada na página inicial.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screenshot">
+    <div class="screenshot-label">TELA: Gerenciar Serviços</div>
+    <div class="screenshot-placeholder">
+      <div class="screenshot-icon">📋</div>
+      <p><strong>Services.jsx</strong></p>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">Lista de serviços com ações de editar/excluir</p>
+    </div>
+  </div>
+</section>
+
+<!-- TEXTOS DO SITE -->
+<section class="section" id="textos">
+  <div class="section-header">
+    <div class="section-icon">🌐</div>
+    <div>
+      <h2 class="section-title">Textos do Site</h2>
+      <p class="section-subtitle">Personalizar textos exibidos ao cliente</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">✏️</div>
+      <h3 class="card-title">Editor de Textos</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      Edite os textos da página inicial e outras seções do site:
+    </p>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Seção</th>
+            <th>Campos Editáveis</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Hero Principal</strong></td>
+            <td>Título, Subtítulo, Texto do botão CTA</td>
+          </tr>
+          <tr>
+            <td><strong>Seção "Por que nós"</strong></td>
+            <td>Título e descrições dos benefícios</td>
+          </tr>
+          <tr>
+            <td><strong>Footer</strong></td>
+            <td>Endereço, telefone, redes sociais</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="screenshot">
+      <div class="screenshot-label">TELA: Editor de Textos</div>
+      <div class="screenshot-placeholder">
+        <div class="screenshot-icon">📝</div>
+        <p><strong>SiteTexts.jsx</strong></p>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Formulário com campos de texto editáveis</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="page-break"></div>
+
+<!-- PROMOÇÕES -->
+<section class="section" id="promocoes">
+  <div class="section-header">
+    <div class="section-icon">🎁</div>
+    <div>
+      <h2 class="section-title">Promoções</h2>
+      <p class="section-subtitle">Configurar banners de promoções sazonais</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🎉</div>
+      <h3 class="card-title">Tipos de Promoção</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      O sistema suporta diferentes tipos de promoções:
+    </p>
+
+    <div class="feature-list">
+      <div class="feature-item">
+        <div class="feature-icon">🔥</div>
+        <div class="feature-text">
+          <div class="feature-title">Black Friday</div>
+          <div class="feature-desc">Banner negro com desconto especial</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🎄</div>
+        <div class="feature-text">
+          <div class="feature-title">Natal</div>
+          <div class="feature-desc">Promoção de fim de ano</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🚗</div>
+        <div class="feature-text">
+          <div class="feature-title">Dia do Carro</div>
+          <div class="feature-desc">Promoções especiais para datas automotivas</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screenshot">
+      <div class="screenshot-label">TELA: Promoções</div>
+      <div class="screenshot-placeholder">
+        <div class="screenshot-icon">🎊</div>
+        <p><strong>Promotions.jsx</strong></p>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Lista de promoções ativas/inativas</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONFIGURAÇÃO PIX -->
+<section class="section" id="pix">
+  <div class="section-header">
+    <div class="section-icon">💳</div>
+    <div>
+      <h2 class="section-title">Configurar PIX</h2>
+      <p class="section-subtitle">Integrar gateway de pagamento Asaas</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔑</div>
+      <h3 class="card-title">Credenciais do Asaas</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      Para ativar pagamentos PIX, configure:
+    </p>
+
+    <div class="feature-list">
+      <div class="feature-item">
+        <div class="feature-icon">🔐</div>
+        <div class="feature-text">
+          <div class="feature-title">API Key</div>
+          <div class="feature-desc">Chave de API do painel Asaas (sandbox ou produção)</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🧪</div>
+        <div class="feature-text">
+          <div class="feature-title">Ambiente</div>
+          <div class="feature-desc">Sandbox (testes) ou Produção (real)</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📧</div>
+        <div class="feature-text">
+          <div class="feature-title">Webhook URL</div>
+          <div class="feature-desc">URL para receber notificações de pagamento</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-warning">
+      <span class="alert-icon">⚠️</span>
+      <div>
+        <div class="alert-title">Segurança</div>
+        <div class="alert-content">A API Key é armazenada de forma segura no Firestore. Em produção, considere usar Cloud Functions para operations sensíveis.</div>
+      </div>
+    </div>
+
+    <div class="screenshot">
+      <div class="screenshot-label">TELA: Configuração PIX</div>
+      <div class="screenshot-placeholder">
+        <div class="screenshot-icon">💰</div>
+        <p><strong>PixConfig.jsx</strong></p>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Formulário com credenciais Asaas</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AGENDA DE TRABALHOS -->
+<section class="section" id="agenda">
+  <div class="section-header">
+    <div class="section-icon">📋</div>
+    <div>
+      <h2 class="section-title">Agenda de Trabalhos</h2>
+      <p class="section-subtitle">Visualizar e gerenciar todos os agendamentos</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📊</div>
+      <h3 class="card-title">Visão Geral</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      A página de Agenda mostra todos os agendamentos com:
+    </p>
+
+    <div class="feature-list">
+      <div class="feature-item">
+        <div class="feature-icon">🔍</div>
+        <div class="feature-text">
+          <div class="feature-title">Busca</div>
+          <div class="feature-desc">Pesquisar por OS, nome, placa ou celular</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🏷️</div>
+        <div class="feature-text">
+          <div class="feature-title">Filtros por Status</div>
+          <div class="feature-desc">Filtrar por Aguardando, Agendado, Em Serviço, etc.</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🔧</div>
+        <div class="feature-text">
+          <div class="feature-title">Filtros por Serviço</div>
+          <div class="feature-desc">Ver apenas agendamentos de serviços específicos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔄</div>
+      <h3 class="card-title">Atualizar Status</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      Para avançar o status de um agendamento:
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-title">Clique no agendamento</div>
+        <div class="step-content">Isso abre o modal de detalhes</div>
+      </div>
+      <div class="step">
+        <div class="step-title">Clique em "Avançar Status"</div>
+        <div class="step-content">O sistema move para o próximo passo da timeline</div>
+      </div>
+      <div class="step">
+        <div class="step-title">Confirme a ação</div>
+        <div class="step-content">O cliente vê a atualização em tempo real</div>
+      </div>
+    </div>
+
+    <div class="screenshot">
+      <div class="screenshot-label">TELA: Agenda</div>
+      <div class="screenshot-placeholder">
+        <div class="screenshot-icon">📅</div>
+        <p><strong>Schedule.jsx (Admin)</strong></p>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Lista de agendamentos com filtros</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="page-break"></div>
+
+<!-- HISTÓRICO E LOGS -->
+<section class="section" id="historico">
+  <div class="section-header">
+    <div class="section-icon">📜</div>
+    <div>
+      <h2 class="section-title">Histórico e Logs</h2>
+      <p class="section-subtitle">Rastrear alterações e exclusões</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔍</div>
+      <h3 class="card-title">Audit Logs</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      O sistema registra automaticamente:
+    </p>
+
+    <div class="feature-list">
+      <div class="feature-item">
+        <div class="feature-icon">🗑️</div>
+        <div class="feature-text">
+          <div class="feature-title">Exclusões</div>
+          <div class="feature-desc">Quando um agendamento é deletado, com motivo informado</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">✏️</div>
+        <div class="feature-text">
+          <div class="feature-title">Alterações</div>
+          <div class="feature-desc">Modificações em agendamentos existentes</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">👤</div>
+        <div class="feature-text">
+          <div class="feature-title">Responsável</div>
+          <div class="feature-desc">Quem fez cada alteração</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-info">
+      <span class="alert-icon">💡</span>
+      <div>
+        <div class="alert-title">Conformidade</div>
+        <div class="alert-content">Os logs permitem rastrear quem excluiu um agendamento e o motivo, útil para auditoria.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHECK-IN -->
+<section class="section" id="checkin">
+  <div class="section-header">
+    <div class="section-icon">📷</div>
+    <div>
+      <h2 class="section-title">Check-in por QR Code</h2>
+      <p class="section-subtitle">Como usar o scanner na recepção</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📱</div>
+      <h3 class="card-title">Fluxo de Check-in</h3>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-title">Acesse o Scanner</div>
+        <div class="step-content">No painel admin, clique em "Check-in" no menu</div>
+      </div>
+      <div class="step">
+        <div class="step-title">Escaneie o QR Code</div>
+        <div class="step-content">Use a câmera do celular/tablet para escanear o QR do cliente</div>
+      </div>
+      <div class="step">
+        <div class="step-title">Confirme a Entrada</div>
+        <div class="step-content">Clique em "Confirmar Entrada do Veículo" para avançar o status</div>
+      </div>
+      <div class="step">
+        <div class="step-title">WhatsApp Automático</div>
+        <div class="step-content">Sistema oferece enviar mensagem para o cliente via WhatsApp</div>
+      </div>
+    </div>
+
+    <div class="screenshot">
+      <div class="screenshot-label">TELA: Check-in</div>
+      <div class="screenshot-placeholder">
+        <div class="screenshot-icon">📲</div>
+        <p><strong>Checkin.jsx</strong></p>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Scanner de QR Code com câmera</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONFIGURAÇÕES -->
+<section class="section" id="configuracoes">
+  <div class="section-header">
+    <div class="section-icon">⚙️</div>
+    <div>
+      <h2 class="section-title">Configurações</h2>
+      <p class="section-subtitle">Regras gerais do sistema</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🎛️</div>
+      <h3 class="card-title">Opções Disponíveis</h3>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Configuração</th>
+            <th>Descrição</th>
+            <th>Padrão</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tempo de expiração PIX</td>
+            <td>Minutos até o QR Code expirar</td>
+            <td>10 minutos</td>
+          </tr>
+          <tr>
+            <td>Reserva de slot</td>
+            <td>Tempo que um horário fica bloqueado ao selecionar</td>
+            <td>10 minutos</td>
+          </tr>
+          <tr>
+            <td>Permitir reagendamento</td>
+            <td>Se clientes podem solicitar reagendamento</td>
+            <td>Sim</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <p>Manual do Painel Administrativo - BrilhoCar Estética Automotiva</p>
+  <p style="margin-top: 0.5rem;">Versão 1.0 - 2026</p>
+</footer>
+
+</body>
+</html>

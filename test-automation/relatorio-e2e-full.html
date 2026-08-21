@@ -33,25 +33,25 @@
 </head>
 <body>
 <h1>📋 Relatório E2E Completo - BrilhoCar</h1>
-<p>Teste executado em: 2026-08-20T16:07:54.169Z</p>
+<p>Teste executado em: 2026-08-20T16:37:09.216Z</p>
 
 <div class="summary">
-  <div class="card"><div class="value">60</div><div class="label">Total Passos</div></div>
-  <div class="card"><div class="value">7</div><div class="label">✅ Sucessos</div></div>
+  <div class="card"><div class="value">54</div><div class="label">Total Passos</div></div>
+  <div class="card"><div class="value">2</div><div class="label">✅ Sucessos</div></div>
   <div class="card warning"><div class="value">0</div><div class="label">⚠️ Avisos</div></div>
   <div class="card error"><div class="value">0</div><div class="label">❌ Erros</div></div>
   <div class="card"><div class="value">12</div><div class="label">📸 Screenshots</div></div>
-  <div class="card"><div class="value">3</div><div class="label">📋 Agendamentos</div></div>
+  <div class="card"><div class="value">0</div><div class="label">📋 Agendamentos</div></div>
 </div>
 
 <div class="ids">
   <p><strong>Agendamentos Criados:</strong></p>
-  <p>1. OS: BC-2026-298166 | ID: EOjMhbPaN7lJcuXsR3jd</p><p>2. OS: BC-2026-560720 | ID: KUsEl3rm5oITW98ow8LT</p><p>3. OS: BC-2026-854308 | ID: Zks4qqkaBQpSgOFmyqpT</p>
+  
 </div>
 
 <h2>📝 Log de Execução</h2>
 <div class="step INFO">🚀 TESTE E2E COMPLETO - BrilhoCar</div><div class="step INFO">============================================================</div><div class="step INFO">Este teste valida TODO o fluxo do sistema:</div><div class="step INFO">  1. Criar agendamentos de TESTE via HTTP</div><div class="step INFO">  2. Simular pagamento PIX</div><div class="step INFO">  3. Admin: Ver todos os agendamentos</div><div class="step INFO">  4. Admin: Workflow completo (Receber -> Iniciar -> Finalizar -> Entregar)</div><div class="step INFO">  5. Scanner QR Code</div><div class="step INFO">  6. Timeline e histórico</div><div class="step INFO">
-📝 PASSO 1: Criando Agendamentos de Teste</div><div class="step INFO">Criando agendamento 1...</div><div class="step SUCCESS">✅ Agendamento 1 criado<br><small>OS: BC-2026-298166</small></div><div class="step SUCCESS">✅ Pagamento 1 simulado</div><div class="step INFO">Criando agendamento 2...</div><div class="step SUCCESS">✅ Agendamento 2 criado<br><small>OS: BC-2026-560720</small></div><div class="step SUCCESS">✅ Pagamento 2 simulado</div><div class="step INFO">Criando agendamento 3...</div><div class="step SUCCESS">✅ Agendamento 3 criado (sem pagamento)<br><small>OS: BC-2026-854308</small></div><div class="step INFO">Total de agendamentos criados: 3</div><div class="step INFO">
+📝 PASSO 1: Criando Agendamentos de Teste</div><div class="step INFO">Criando agendamento 1...</div><div class="step INFO">Criando agendamento 2...</div><div class="step INFO">Criando agendamento 3...</div><div class="step INFO">Total de agendamentos criados: 0</div><div class="step INFO">
 🔐 PASSO 2: Login Admin</div><div class="step INFO">📸 Screenshot: 01-admin-login</div><div class="step INFO">URL após login: https://brilhocar-estetica.vercel.app/login</div><div class="step INFO">📸 Screenshot: 02-admin-loggedin</div><div class="step INFO">
 📅 PASSO 3: Agenda de Trabalhos</div><div class="step INFO">📸 Screenshot: 03-trabalhos-all</div><div class="step INFO">📸 Screenshot: 06-trabalhos-todos</div><div class="step INFO">
 🔄 PASSO 4: Workflow Completo</div><div class="step INFO">📸 Screenshot: 08-modal-detalhes</div><div class="step INFO">Avançando status via HTTP...</div><div class="step INFO">📸 Screenshot: 11-finalizado</div><div class="step INFO">📸 Screenshot: 12-entregue</div><div class="step SUCCESS">✅ Entregue ao Cliente</div><div class="step INFO">
@@ -60,8 +60,8 @@
 📊 PASSO 7: Analytics</div><div class="step INFO">📸 Screenshot: 16-analytics</div><div class="step INFO">
 💰 PASSO 8: Configurar PIX</div><div class="step INFO">📸 Screenshot: 17-pix-config</div><div class="step INFO">
 🔖 PASSO 9: Track - QR Code do Cliente</div><div class="step INFO">📸 Screenshot: 18-track-page</div><div class="step SUCCESS">✅ Página de rastreamento visitada</div><div class="step INFO">
-============================================================</div><div class="step INFO">📊 RELATÓRIO FINAL</div><div class="step INFO">============================================================</div><div class="step INFO">Total de passos: 46</div><div class="step INFO">✅ Sucessos: 7</div><div class="step INFO">⚠️  Avisos: 0</div><div class="step INFO">📸 Screenshots: 12</div><div class="step INFO">📋 Agendamentos criados: 3</div><div class="step INFO">🔗 IDs: EOjMhbPaN7lJcuXsR3jd, KUsEl3rm5oITW98ow8LT, Zks4qqkaBQpSgOFmyqpT</div><div class="step INFO">🔖 OS: BC-2026-298166, BC-2026-560720, BC-2026-854308</div><div class="step INFO">
-🔗 LINKS PARA TESTE:</div><div class="step INFO">  Site: https://brilhocar-estetica.vercel.app</div><div class="step INFO">  Agenda: https://brilhocar-estetica.vercel.app/admin/trabalhos</div><div class="step INFO">  Admin: https://brilhocar-estetica.vercel.app/admin</div><div class="step INFO">  PIX: https://brilhocar-estetica.vercel.app/admin/pix</div><div class="step INFO">  Track: https://brilhocar-estetica.vercel.app/track</div><div class="step INFO">  Agendamento 1: https://brilhocar-estetica.vercel.app/pagamento/EOjMhbPaN7lJcuXsR3jd</div>
+============================================================</div><div class="step INFO">📊 RELATÓRIO FINAL</div><div class="step INFO">============================================================</div><div class="step INFO">Total de passos: 41</div><div class="step INFO">✅ Sucessos: 2</div><div class="step INFO">⚠️  Avisos: 0</div><div class="step INFO">📸 Screenshots: 12</div><div class="step INFO">📋 Agendamentos criados: 0</div><div class="step INFO">🔗 IDs: </div><div class="step INFO">🔖 OS: </div><div class="step INFO">
+🔗 LINKS PARA TESTE:</div><div class="step INFO">  Site: https://brilhocar-estetica.vercel.app</div><div class="step INFO">  Agenda: https://brilhocar-estetica.vercel.app/admin/trabalhos</div><div class="step INFO">  Admin: https://brilhocar-estetica.vercel.app/admin</div><div class="step INFO">  PIX: https://brilhocar-estetica.vercel.app/admin/pix</div><div class="step INFO">  Track: https://brilhocar-estetica.vercel.app/track</div>
 
 <h2>📸 Screenshots (12)</h2>
 <div class="grid">

@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addTimelineEntry = exports.findAppointmentByOS = exports.createAppointmentWithSlotLock = exports.simulatePaymentConfirmed = exports.checkExpiredPayments = exports.seedServices = exports.bootstrapAdminHttp = exports.bootstrapAdmin = exports.saveTransaction = exports.cancelPixPayment = exports.asaasWebhook = exports.checkPixPaymentStatus = exports.createPixPaymentForAppointment = void 0;
+exports.getTenantConfig = exports.initializeDefaultTenant = exports.addTimelineEntry = exports.findAppointmentByOS = exports.createAppointmentWithSlotLock = exports.simulatePaymentConfirmed = exports.checkExpiredPayments = exports.seedServices = exports.bootstrapAdminHttp = exports.bootstrapAdmin = exports.saveTransaction = exports.cancelPixPayment = exports.asaasWebhook = exports.checkPixPaymentStatus = exports.createPixPaymentForAppointment = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const axios_1 = __importDefault(require("axios"));
@@ -1007,6 +1007,108 @@ exports.addTimelineEntry = functions.https.onCall(async (data, context) => {
     catch (error) {
         console.error('[addTimelineEntry] Erro:', error);
         throw new functions.https.HttpsError('internal', error.message || 'Erro ao atualizar timeline');
+    }
+});
+/**
+ * Inicializar tenant padrão no Firestore
+ * Cria o documento de tenant 'brilhocar' se não existir
+ */
+exports.initializeDefaultTenant = functions.https.onCall(async (_data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+    }
+    // Verificar se é admin
+    const adminDoc = await db.collection('admins').doc(context.auth.uid).get();
+    if (!adminDoc.exists) {
+        throw new functions.https.HttpsError('permission-denied', 'Apenas admin pode executar');
+    }
+    const tenantId = 'brilhocar';
+    // Verificar se já existe
+    const existing = await db.collection('tenants').doc(tenantId).get();
+    if (existing.exists) {
+        return {
+            success: true,
+            message: 'Tenant padrão já existe',
+            tenantId
+        };
+    }
+    // Criar tenant padrão
+    const defaultTenant = {
+        id: tenantId,
+        displayName: 'BrilhoCar Estética Automotiva',
+        logoText: 'BrilhoCar',
+        primaryColor: '#00e676',
+        primaryHover: '#00c853',
+        accentColor: '#D4AF37',
+        backgroundColor: '#0a0a0f',
+        surfaceColor: '#151515',
+        logoUrl: '',
+        contact: {
+            email: 'contato@brilhocar.com',
+            phone: '(11) 98131-2143',
+            whatsapp: '5511981312143',
+            address: 'Mauá, SP',
+            instagram: '@brilhocar',
+            facebook: 'BrilhoCar',
+            city: 'Mauá'
+        },
+        pix: {
+            AsaasAPIKey: '',
+            walletId: '',
+            environment: 'production'
+        },
+        firebaseConfig: {
+            apiKey: '',
+            authDomain: '',
+            projectId: 'brilhocar-estetica-9f14b',
+            storageBucket: '',
+            messagingSenderId: '',
+            appId: ''
+        },
+        status: 'active',
+        plan: 'pro',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    await db.collection('tenants').doc(tenantId).set(defaultTenant);
+    console.log(`[initializeDefaultTenant] Tenant padrão '${tenantId}' criado`);
+    return {
+        success: true,
+        message: 'Tenant padrão criado com sucesso!',
+        tenantId
+    };
+});
+/**
+ * Buscar configuração de tenant (para clientes)
+ */
+exports.getTenantConfig = functions.https.onCall(async (data) => {
+    const { tenantId } = data;
+    if (!tenantId) {
+        throw new functions.https.HttpsError('invalid-argument', 'tenantId é obrigatório');
+    }
+    try {
+        const docSnap = await db.collection('tenants').doc(tenantId).get();
+        if (!docSnap.exists) {
+            return { success: false, error: 'Tenant não encontrado' };
+        }
+        const tenant = docSnap.data();
+        // Não retornar dados sensíveis
+        return {
+            success: true,
+            tenant: {
+                id: docSnap.id,
+                displayName: tenant === null || tenant === void 0 ? void 0 : tenant.displayName,
+                logoText: tenant === null || tenant === void 0 ? void 0 : tenant.logoText,
+                primaryColor: tenant === null || tenant === void 0 ? void 0 : tenant.primaryColor,
+                accentColor: tenant === null || tenant === void 0 ? void 0 : tenant.accentColor,
+                contact: tenant === null || tenant === void 0 ? void 0 : tenant.contact,
+                status: tenant === null || tenant === void 0 ? void 0 : tenant.status
+            }
+        };
+    }
+    catch (error) {
+        console.error('[getTenantConfig] Erro:', error);
+        throw new functions.https.HttpsError('internal', error.message || 'Erro ao buscar tenant');
     }
 });
 //# sourceMappingURL=index.js.map

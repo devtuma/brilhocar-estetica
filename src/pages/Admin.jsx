@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, deleteDoc, addDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db, auth } from '../firebase';
-import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle, Sparkles, Trash2, X, FileText, RefreshCcw, CheckSquare, Square, Loader2, QrCode, ClipboardList } from 'lucide-react';
+import { CalendarCheck, Clock, CheckCircle, Settings, Gift, Globe, TrendingUp, Users, DollarSign, CreditCard, Calendar, Shield, AlertCircle, Sparkles, Trash2, X, FileText, RefreshCcw, CheckSquare, Square, Loader2, QrCode, ClipboardList, Palette } from 'lucide-react';
 import CheckinScanner from '../components/CheckinScanner';
 
 export default function Admin() {
@@ -403,6 +403,15 @@ export default function Admin() {
           <Settings size={28} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
           <p className="font-bold text-white">Configurações</p>
           <p className="text-xs text-gray-500 mt-1">Regras do sistema</p>
+        </Link>
+
+        <Link
+          to="/admin/branding"
+          className="bg-surface border border-gray-800 rounded-2xl p-5 hover:border-primary/50 transition-all group"
+        >
+          <Palette size={28} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
+          <p className="font-bold text-white">Branding</p>
+          <p className="text-xs text-gray-500 mt-1">Logo, cores e identidade</p>
         </Link>
 
         <button

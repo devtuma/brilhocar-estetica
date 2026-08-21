@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual do Sistema - BrilhoCar Estética Automotiva</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0b0b0f;
+      --bg-surface: #151515;
+      --bg-card: #1a1a1a;
+      --primary: #00e676;
+      --accent: #D4AF37;
+      --text: #ffffff;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --border: #2a2a2a;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --info: #3b82f6;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-dark) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 0;
+      margin-bottom: 3rem;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .logo-icon {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, var(--primary), #00c853);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .logo-text {
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+
+    .logo-text span {
+      color: var(--primary);
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 900;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--text), var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: var(--primary);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.75rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+
+    /* Table of Contents */
+    .toc {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .toc h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .toc-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--bg-card);
+      border-radius: 12px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .toc-item:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .toc-number {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      color: #000;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+
+    .toc-content h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .toc-content p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Section */
+    .section {
+      margin-bottom: 4rem;
+      scroll-margin-top: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .section-title {
+      font-size: 1.75rem;
+      font-weight: 800;
+    }
+
+    .section-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--bg-card);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    /* Flow Diagram */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 1.5rem 0;
+      padding: 1.5rem;
+      background: var(--bg-card);
+      border-radius: 12px;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-surface);
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .flow-step.active {
+      background: var(--primary);
+      color: #000;
+    }
+
+    .flow-step.user {
+      border: 1px solid var(--info);
+      color: var(--info);
+    }
+
+    .flow-step.admin {
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
+
+    .flow-arrow {
+      color: var(--text-muted);
+      font-size: 1.25rem;
+    }
+
+    /* Code Block */
+    .code-block {
+      background: #000;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      overflow-x: auto;
+    }
+
+    .code-block pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #a5b4fc;
+      white-space: pre-wrap;
+    }
+
+    .code-block .comment {
+      color: #6b7280;
+    }
+
+    .code-block .keyword {
+      color: #c084fc;
+    }
+
+    .code-block .string {
+      color: #4ade80;
+    }
+
+    .code-block .number {
+      color: #fbbf24;
+    }
+
+    /* Step by Step */
+    .steps {
+      counter-reset: step;
+    }
+
+    .step {
+      position: relative;
+      padding-left: 3.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 2.5rem;
+      height: 2.5rem;
+      background: var(--primary);
+      color: #000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .step-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .step-content {
+      color: var(--text-secondary);
+    }
+
+    /* Feature List */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .feature {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--bg-card);
+      border-radius: 12px;
+    }
+
+    .feature-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      color: #000;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .feature-title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .feature-desc {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    /* Screenshot Placeholder */
+    .screenshot {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      margin: 1.5rem 0;
+    }
+
+    .screenshot-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+    }
+
+    .screenshot-placeholder {
+      background: linear-gradient(135deg, var(--bg-surface), var(--bg-card));
+      border-radius: 8px;
+      padding: 3rem;
+      border: 2px dashed var(--border);
+    }
+
+    .screenshot-icon {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Alert */
+    .alert {
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      margin: 1rem 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .alert-info {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .alert-warning {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .alert-success {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .alert-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .alert-title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .alert-content {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    /* Table */
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 1.5rem 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: var(--bg-card);
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    tr:hover {
+      background: var(--bg-card);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-pending {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+
+    .status-confirmed {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+
+    .status-progress {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+    }
+
+    .status-done {
+      background: rgba(168, 85, 247, 0.2);
+      color: #a855f7;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: white;
+        color: black;
+      }
+
+      .header {
+        background: #f3f4f6;
+        border-bottom: 2px solid #e5e7eb;
+      }
+
+      .card, .toc, .flow {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+      }
+
+      .screenshot-placeholder {
+        background: #f3f4f6;
+        border: 1px dashed #9ca3af;
+      }
+
+      .badge {
+        background: #000;
+        color: white;
+      }
+    }
+
+    /* Page break for PDF */
+    .page-break {
+      page-break-after: always;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 3rem 0;
+      margin-top: 4rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-content">
+    <div class="logo">
+      <div class="logo-icon">✨</div>
+      <div class="logo-text">BrilhoCar <span>Estética</span></div>
+    </div>
+    <span class="badge">Manual do Sistema</span>
+    <h1>Manual Completo do Sistema</h1>
+    <p>Guia abrangente para clientes e administradores - Fluxo completo, telas e funcionalidades</p>
+  </div>
+</header>
+
+<div class="container">
+
+<!-- PARTE 1: INTRODUÇÃO -->
+<section class="section" id="introducao">
+  <div class="section-header">
+    <div class="section-icon">📖</div>
+    <div>
+      <h2 class="section-title">Introdução</h2>
+      <p class="section-subtitle">Visão geral do sistema e como usar este manual</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🎯</div>
+      <h3 class="card-title">O que é o BrilhoCar System?</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      O <strong>BrilhoCar Estética Automotiva</strong> é um sistema completo de gestão de agendamentos para clínicas de estética automotiva. Ele permite que clientes agendem serviços online, realizem pagamento via PIX, e acompanhem o status do trabalho em tempo real.
+    </p>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">📅</div>
+        <div>
+          <div class="feature-title">Agendamento Online</div>
+          <div class="feature-desc">Clientes escolhem serviços, veículo, data e horário disponível</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">💳</div>
+        <div>
+          <div class="feature-title">Pagamento PIX</div>
+          <div class="feature-desc">Integração com Asaas para pagamento instantâneo via PIX</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📱</div>
+        <div>
+          <div class="feature-title">Acompanhamento Real-time</div>
+          <div class="feature-desc">QR Code para check-in e status atualizado em tempo real</div>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⚙️</div>
+        <div>
+          <div class="feature-title">Painel Administrativo</div>
+          <div class="feature-desc">Gerenciamento completo de serviços, horários e agendamentos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">👥</div>
+      <h3 class="card-title">Público-alvo deste Manual</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      Este manual foi escrito para dois públicos principais:
+    </p>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Público</th>
+            <th>Descrição</th>
+            <th>Seções Relevantes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>👤 Cliente Final</strong></td>
+            <td>Pessoas que agendam serviços de estética automotiva</td>
+            <td>Fluxo do Cliente, FAQ</td>
+          </tr>
+          <tr>
+            <td><strong>👑 Administrador</strong></td>
+            <td>Donos/funcionários que gerenciam a operação</td>
+            <td>Painel Admin, Configurações</td>
+          </tr>
+          <tr>
+            <td><strong>🔧 Desenvolvedor</strong></td>
+            <td>Técnicos que mantém ou customiza o sistema</td>
+            <td>Arquitetura, Firebase</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PARTE 2: FLUXO DO CLIENTE -->
+<section class="section" id="fluxo-cliente">
+  <div class="section-header">
+    <div class="section-icon">👤</div>
+    <div>
+      <h2 class="section-title">Fluxo do Cliente</h2>
+      <p class="section-subtitle">Passo a passo completo de como um cliente usa o sistema</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔄</div>
+      <h3 class="card-title">Jornada do Cliente - Visão Geral</h3>
+    </div>
+
+    <div class="flow">
+      <div class="flow-step user">1. Acessa o Site</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step user">2. Seleciona Serviços</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step user">3. Informa Dados</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step user">4. Escolhe Horário</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step user">5. Paga PIX</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step user">6. Acompanha Status</div>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-title">Passo 1: Acessar o Site</div>
+      <div class="step-content">
+        <p>O cliente acessa o site da BrilhoCar através da URL principal. Na página inicial (Home), ele encontra:</p>
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+          <li>Banner de promoções ativas (quando houver)</li>
+          <li>Hero section com título e chamada para ação</li>
+          <li>Lista de serviços disponíveis com preços</li>
+          <li>Depoimentos de clientes</li>
+          <li>Botão para agendar ou falar via WhatsApp</li>
+        </ul>
+        <div class="alert alert-info">
+          <span class="alert-icon">ℹ️</span>
+          <div>
+            <div class="alert-title">Dica</div>
+            <div class="alert-content">Os serviços são carregados dinamicamente do banco de dados. Isso significa que o admin pode adicionar/remover serviços sem alterar o código.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">Passo 2: Clicar em "Agendar"</div>
+      <div class="step-content">
+        <p>O cliente clica no botão principal de agendamento. Pode ser:</p>
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+          <li>Botão "Agendar Meu Horário" no hero</li>
+          <li>Botão "Ver todos e agendar" na seção de serviços</li>
+          <li>Link direto: <code style="background: var(--bg-card); padding: 0.2rem 0.5rem; border-radius: 4px;">/booking</code></li>
+        </ul>
+        <p style="margin-top: 0.5rem;">Isso leva o cliente para a página de agendamento.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">Passo 3: Selecionar Serviços</div>
+      <div class="step-content">
+        <p>Na página de Booking, o cliente vê uma lista de serviços disponíveis. Para cada serviço, são exibidos:</p>
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+          <li>Nome do serviço</li>
+          <li>Preço base</li>
+          <li>Duração estimada</li>
+          <li>Indicação de serviço em destaque (⭐)</li>
+        </ul>
+        <p style="margin-top: 0.5rem;">O cliente pode selecionar múltiplos serviços. O total é calculado automaticamente.</p>
+
+        <div class="screenshot">
+          <div class="screenshot-label">TELA: Seleção de Serviços</div>
+          <div class="screenshot-placeholder">
+            <div class="screenshot-icon">📋</div>
+            <p><strong>Booking.jsx</strong></p>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Cards de serviços com seleção múltipla</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">Passo 4: Informar Dados Pessoais</div>
+      <div class="step-content">
+        <p>Após selecionar os serviços, o cliente preenche:</p>
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+          <li><strong>Nome completo</strong></li>
+          <li><strong>Selecionar veículo</strong> (cadastrado anteriormente) ou informar novo</li>
+          <li><strong>Modelo</strong> e <strong>Placa</strong> do veículo</li>
+        </ul>
+
+        <div class="alert alert-info">
+          <span class="alert-icon">🔑</span>
+          <div>
+            <div class="alert-title">Login Automático</div>
+            <div class="alert-content">Se o cliente estiver logado (via Firebase Auth), o nome e veículos são preenchidos automaticamente.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">Passo 5: Escolher Data e Horário</div>
+      <div class="step-content">
+        <p>O cliente seleciona a data desejada. Ao selecionar, um picker de horários aparece mostrando:</p>
+        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+          <li>Horários disponíveis em verde</li>
+          <li>Horários ocupados (riscados em vermelho)</li>
+          <li>Horários já reservados mostram tooltip com info</li>
+        </ul>
+
+        <div class="screenshot">
+          <div class="screenshot-label">TELA: Seletor de Horários</div>
+          <div class="screenshot-placeholder">
+            <div class="screenshot-icon">🕐</div>
+            <p><strong>TimeSlotPicker.jsx</strong></p>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Grade de horários com indicação de disponibilidade</p>
+          </div>
+        </div>
+
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <div>
+            <div class="alert-title">Bloqueio de Horário</div>
+            <div class="alert-content">Ao selecionar um horário, ele é reservado temporariamente (10 minutos) até o pagamento ser confirmado. Isso evita conflitos.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-title">Passo 6: Confirmar e Ir para Pagamento</div>
+      <div class="step-content">
+        <p>Após preencher todos os dados, o cliente clica em "Confirmar e Ir para Pagamento". O sistema:</p>
+        <ol style="margin: 0.5rem 0; padding-left: 1.5rem;">
+          <li>Cria a Ordem de Serviço (OS) com número único (ex: <code>BC-2026-123456</code>)</li>
+          <li>Salva o agendamento no Firestore com status "Aguardando Pagamento"</li>
+          <li>Redireciona para a página de pagamento PIX</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="page-break"></div>
+
+<!-- PARTE 3: PAGAMENTO PIX -->
+<section class="section" id="pagamento">
+  <div class="section-header">
+    <div class="section-icon">💳</div>
+    <div>
+      <h2 class="section-title">Pagamento via PIX</h2>
+      <p class="section-subtitle">Como funciona a integração com o gateway Asaas</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔍</div>
+      <h3 class="card-title">Resumo do Agendamento</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      Na página de pagamento, o cliente vê um resumo completo:
+    </p>
+    <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+      <li>Data e horário agendado</li>
+      <li>Veículo (modelo e placa)</li>
+      <li>Lista de serviços selecionados</li>
+      <li>Valor total</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📱</div>
+      <h3 class="card-title">QR Code PIX</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      O sistema gera um QR Code PIX com:
+    </p>
+    <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+      <li>Valor exato do agendamento</li>
+      <li>Chave PIX configurada no painel admin</li>
+      <li>Validade de 10 minutos</li>
+    </ul>
+
+    <div class="screenshot">
+      <div class="screenshot-label">TELA: Pagamento PIX</div>
+      <div class="screenshot-placeholder">
+        <div class="screenshot-icon">📲</div>
+        <p><strong>PixPayment.jsx</strong></p>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">QR Code PIX com instruções de pagamento</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">✅</div>
+      <h3 class="card-title">Confirmação Automática</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      O fluxo de confirmação funciona assim:
+    </p>
+
+    <div class="code-block">
+<pre>
+┌──────────────┐      ┌──────────────┐      ┌──────────────┐
+│   Cliente    │      │    Asaas     │      │  Firebase    │
+│   paga PIX   │ ──── │  confirma    │ ──── │  webhook     │
+└──────────────┘      └──────────────┘      └──────────────┘
+                                                    │
+                                                    ▼
+                                            ┌──────────────┐
+                                            │  Cloud Fn    │
+                                            │ atualiza OS  │
+                                            └──────────────┘
+                                                    │
+                                                    ▼
+                                            ┌──────────────┐
+                                            │  Cliente     │
+                                            │ é notificado │
+                                            └──────────────┘
+</pre>
+    </div>
+
+    <div class="alert alert-success">
+      <span class="alert-icon">🎉</span>
+      <div>
+        <div class="alert-title">Real-time</div>
+        <div class="alert-content">A página de pagamento escuta alterações no Firestore. Quando o webhook atualiza o status, a página detecta automaticamente e redireciona para acompanhamento.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">⏱️</div>
+      <h3 class="card-title">Tempo de Expiração</h3>
+    </div>
+    <p>
+      O QR Code PIX expira em <strong>10 minutos</strong>. Se o pagamento não for confirmado:
+    </p>
+    <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+      <li>O slot é liberado automaticamente</li>
+      <li>O cliente pode tentar novamente</li>
+      <li>Uma Cloud Function scheduled (a cada 5 min) limpa pagamentos expirados</li>
+    </ul>
+  </div>
+</section>
+
+<!-- PARTE 4: ACOMPANHAMENTO -->
+<section class="section" id="acompanhamento">
+  <div class="section-header">
+    <div class="section-icon">📊</div>
+    <div>
+      <h2 class="section-title">Acompanhamento do Serviço</h2>
+      <p class="section-subtitle">Como o cliente acompanha o status do trabalho</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔖</div>
+      <h3 class="card-title">QR Code do Agendamento</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      Após o pagamento, o cliente acessa a página <strong>"Meus Veículos"</strong> (<code>/track</code>) e encontra:
+    </p>
+    <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+      <li>Lista de todos os agendamentos</li>
+      <li>QR Code único para cada OS</li>
+      <li>Botão para baixar ou enviar via WhatsApp</li>
+    </ul>
+
+    <div class="screenshot">
+      <div class="screenshot-label">TELA: Acompanhamento</div>
+      <div class="screenshot-placeholder">
+        <div class="screenshot-icon">📲</div>
+        <p><strong>Track.jsx</strong></p>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">Timeline de status com QR Code</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📋</div>
+      <h3 class="card-title">Timeline de Status</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      O cliente acompanha o progresso através de uma timeline visual:
+    </p>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Descrição</th>
+            <th>Quando ocorre</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="status-badge status-pending">⏳ Aguardando Pagamento</span></td>
+            <td>Aguardando confirmação do PIX</td>
+            <td>Após criar agendamento</td>
+          </tr>
+          <tr>
+            <td><span class="status-badge status-confirmed">📅 Agendado</span></td>
+            <td>Pagamento confirmado, aguardando dia</td>
+            <td>Após webhook do Asaas</td>
+          </tr>
+          <tr>
+            <td><span class="status-badge status-progress">🚗 Veículo Recebido</span></td>
+            <td>Carro chegou na clínica</td>
+            <td>Ao escanear QR Code na recepção</td>
+          </tr>
+          <tr>
+            <td><span class="status-badge status-progress">🔧 Serviço Iniciado</span></td>
+            <td>Trabalho começou</td>
+            <td>Quando admin inicia o serviço</td>
+          </tr>
+          <tr>
+            <td><span class="status-badge status-done">✅ Finalizado</span></td>
+            <td>Serviço concluído</td>
+            <td>Quando admin marca como pronto</td>
+          </tr>
+          <tr>
+            <td><span class="status-badge status-done">📦 Entregue</span></td>
+            <td>Carro devolvido ao cliente</td>
+            <td>Último passo do fluxo</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔄</div>
+      <h3 class="card-title">Reagendamento</h3>
+    </div>
+    <p>
+      Se o cliente precisar reagendar, ele pode solicitar diretamente pela página de acompanhamento (antes do serviço ser iniciado). O admin recebe a solicitação e pode aceitar ou recusar.
+    </p>
+  </div>
+</section>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <p>Manual do Sistema BrilhoCar Estética Automotiva</p>
+  <p style="margin-top: 0.5rem;">Versão 1.0 - 2026</p>
+</footer>
+
+</body>
+</html>

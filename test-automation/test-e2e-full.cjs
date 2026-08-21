@@ -159,7 +159,7 @@ async function runTest() {
     await pageAdmin.waitForTimeout(2000);
     await shot(pageAdmin, '01-admin-login');
 
-    await pageAdmin.fill('input[type="email"]', 'devtuma@gmail.com');
+    await pageAdmin.fill('input[type="email"]', 'admin@brilhocar.com');
     await pageAdmin.fill('input[type="password"]', 'admin123');
     await pageAdmin.click('button[type="submit"]');
     await pageAdmin.waitForTimeout(5000);

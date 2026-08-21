@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual Referências - BrilhoCar Estética Automotiva</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0b0b0f;
+      --bg-surface: #151515;
+      --bg-card: #1a1a1a;
+      --primary: #00e676;
+      --accent: #D4AF37;
+      --text: #ffffff;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --border: #2a2a2a;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --info: #3b82f6;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+    .header {
+      background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-dark) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 0;
+      margin-bottom: 3rem;
+    }
+
+    .header-content { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+
+    .logo { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .logo-icon { width: 60px; height: 60px; background: linear-gradient(135deg, var(--info), #1d4ed8); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .logo-text { font-size: 1.5rem; font-weight: 800; }
+    .logo-text span { color: var(--info); }
+
+    .header h1 { font-size: 2.5rem; font-weight: 900; margin-bottom: 0.5rem; }
+    .header p { color: var(--text-secondary); font-size: 1.1rem; }
+
+    .badge { display: inline-block; padding: 0.5rem 1rem; background: var(--info); color: white; font-weight: 700; font-size: 0.75rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+
+    .section { margin-bottom: 4rem; scroll-margin-top: 2rem; }
+    .section-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .section-icon { width: 48px; height: 48px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .section-title { font-size: 1.75rem; font-weight: 800; }
+    .section-subtitle { color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.25rem; }
+
+    .card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+    .card-icon { width: 40px; height: 40px; background: var(--bg-card); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .card-title { font-size: 1.1rem; font-weight: 700; }
+
+    .faq-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+    .faq-question { font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: flex-start; gap: 0.5rem; }
+    .faq-question::before { content: "❓"; flex-shrink: 0; }
+    .faq-answer { color: var(--text-secondary); padding-left: 1.5rem; }
+
+    .architecture-diagram { background: var(--bg-card); border-radius: 12px; padding: 2rem; margin: 1.5rem 0; }
+    .arch-layer { margin-bottom: 2rem; }
+    .arch-layer-title { font-weight: 700; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem; }
+    .arch-items { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .arch-item { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 1rem; font-size: 0.85rem; }
+
+    .table-wrapper { overflow-x: auto; margin: 1.5rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--bg-card); font-weight: 600; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    tr:hover { background: var(--bg-card); }
+
+    code { background: var(--bg-card); padding: 0.2rem 0.5rem; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
+
+    .alert { padding: 1rem 1.25rem; border-radius: 12px; margin: 1rem 0; display: flex; align-items: flex-start; gap: 0.75rem; }
+    .alert-info { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); }
+    .alert-warning { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .alert-success { background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); }
+    .alert-icon { font-size: 1.25rem; flex-shrink: 0; }
+    .alert-title { font-weight: 600; margin-bottom: 0.25rem; }
+    .alert-content { font-size: 0.9rem; opacity: 0.9; }
+
+    .index-section { margin-bottom: 2rem; }
+    .index-title { font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .index-list { list-style: none; }
+    .index-list li { padding: 0.5rem 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem; }
+    .index-list li:last-child { border-bottom: none; }
+    .index-link { color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+    .index-link:hover { color: var(--primary); }
+
+    .footer { text-align: center; padding: 3rem 0; margin-top: 4rem; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.875rem; }
+
+    @media print { body { background: white; color: black; } .header { background: #f3f4f6; border-bottom: 2px solid #e5e7eb; } .card, .architecture-diagram { background: #f9fafb; border: 1px solid #e5e7eb; } }
+    .page-break { page-break-after: always; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-content">
+    <div class="logo">
+      <div class="logo-icon">📚</div>
+      <div class="logo-text">Referências e <span>FAQ</span></div>
+    </div>
+    <span class="badge">Manual Completo</span>
+    <h1>Perguntas Frequentes e Arquitetura</h1>
+    <p>FAQ, arquitetura técnica e índice completo para referência</p>
+  </div>
+</header>
+
+<div class="container">
+
+<!-- ÍNDICE COMPLETO -->
+<section class="section" id="indice">
+  <div class="section-header">
+    <div class="section-icon">📑</div>
+    <div>
+      <h2 class="section-title">Índice Completo do Manual</h2>
+      <p class="section-subtitle">Todas as partes do manual para referência rápida</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="index-section">
+      <h3 class="index-title">📖 Parte 1: Introdução e Fluxo do Cliente</h3>
+      <ul class="index-list">
+        <li><a href="manual-sistema-parte1.html#introducao" class="index-link">Introdução - O que é o sistema</a></li>
+        <li><a href="manual-sistema-parte1.html#fluxo-cliente" class="index-link">Fluxo do Cliente - Jornada completa</a></li>
+        <li><a href="manual-sistema-parte1.html#pagamento" class="index-link">Pagamento via PIX - Como funciona</a></li>
+        <li><a href="manual-sistema-parte1.html#acompanhamento" class="index-link">Acompanhamento - Timeline e status</a></li>
+      </ul>
+    </div>
+
+    <div class="index-section">
+      <h3 class="index-title">👑 Parte 2: Painel do Administrador</h3>
+      <ul class="index-list">
+        <li><a href="manual-sistema-parte2-admin.html#acesso" class="index-link">Acesso ao Painel - Login e permissões</a></li>
+        <li><a href="manual-sistema-parte2-admin.html#menu" class="index-link">Menu Principal - Todas as funcionalidades</a></li>
+        <li><a href="manual-sistema-parte2-admin.html#horarios" class="index-link">Horários - Configurar funcionamento</a></li>
+        <li><a href="manual-sistema-parte2-admin.html#servicos" class="index-link">Serviços - Gerenciar catálogo</a></li>
+        <li><a href="manual-sistema-parte2-admin.html#textos" class="index-link">Textos do Site - Personalizar conteúdo</a></li>
+        <li><a href="manual-sistema-parte2-admin.html#promocoes" class="index-link">Promoções - Banners sazonais</a></li>
+        <li><a href="manual-sistema-parte2-admin.html#pix" class="index-link">Configuração PIX - Asaas</a></li>
+        <li><a href="manual-sistema-parte2-admin.html#agenda" class="index-link">Agenda de Trabalhos - Gerenciar OS</a></li>
+        <li><a href="manual-sistema-parte2-admin.html#historico" class="index-link">Histórico e Logs - Auditoria</a></li>
+        <li><a href="manual-sistema-parte2-admin.html#checkin" class="index-link">Check-in - Scanner QR Code</a></li>
+        <li><a href="manual-sistema-parte2-admin.html#configuracoes" class="index-link">Configurações - Regras gerais</a></li>
+      </ul>
+    </div>
+
+    <div class="index-section">
+      <h3 class="index-title">🔧 Parte 3: FAQ e Arquitetura</h3>
+      <ul class="index-list">
+        <li><a href="#faq-cliente" class="index-link">FAQ - Perguntas do Cliente</a></li>
+        <li><a href="#faq-admin" class="index-link">FAQ - Perguntas do Admin</a></li>
+        <li><a href="#arquitetura" class="index-link">Arquitetura - Visão técnica</a></li>
+        <li><a href="#banco-dados" class="index-link">Banco de Dados - Collections e estrutura</a></li>
+        <li><a href="#urls" class="index-link">Lista de URLs - Rotas do sistema</a></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ CLIENTE -->
+<section class="section" id="faq-cliente">
+  <div class="section-header">
+    <div class="section-icon">👤</div>
+    <div>
+      <h2 class="section-title">FAQ - Perguntas do Cliente</h2>
+      <p class="section-subtitle">Perguntas frequentes feitas por clientes</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Como faço para agendar um serviço?</div>
+    <div class="faq-answer">
+      Acesse o site, clique em "Agendar", selecione os serviços desejados, preencha seus dados e escolha a data e horário disponível. Após confirmar, você será direcionado para o pagamento via PIX.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Posso agendar para outro dia?</div>
+    <div class="faq-answer">
+      Sim! Na etapa de seleção de horário, você pode escolher qualquer data futura que tenha disponibilidade. Datas passadas ou bloquadas pelo admin não aparecem.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Como funciona o pagamento via PIX?</div>
+    <div class="faq-answer">
+      Após criar o agendamento, um QR Code PIX é gerado com o valor exato. Basta abrir o app do seu banco, escanear o código e confirmar o pagamento. A confirmação é automática e imediata.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">O QR Code do PIX expira?</div>
+    <div class="faq-answer">
+      Sim, o QR Code expira em 10 minutos. Se o tempo acabar, você pode gerar um novo tentando agendar novamente. O horário fica liberado automaticamente.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Como acompanho o status do meu serviço?</div>
+    <div class="faq-answer">
+      Após o pagamento, acesse "Meus Veículos" no menu. Lá você verá a timeline com todos os status (Agendado → Recebido → Em Serviço → Finalizado → Entregue).
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">O que é o QR Code que recebi?</div>
+    <div class="faq-answer">
+      O QR Code é a identificação do seu agendamento. Apresente-o na recepção da clínica. Ele pode ser baixado como imagem ou enviado via WhatsApp.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Posso reagendar meu horário?</div>
+    <div class="faq-answer">
+      Sim, enquanto o serviço ainda não foi iniciado, você pode solicitar reagendamento pela página "Meus Veículos". A solicitação é analisada pela equipe.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Como funciona o check-in?</div>
+    <div class="faq-answer">
+      Ao chegar na clínica, apresente o QR Code na recepção. A equipe escaneia e confirma a entrada do seu veículo. Você recebe uma notificação via WhatsApp.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Posso adicionar mais serviços depois?</div>
+    <div class="faq-answer">
+      Entre em contato via WhatsApp para adicionar serviços a um agendamento existente. Não é possível via sistema.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">O que acontece se eu cancelar?</div>
+    <div class="faq-answer">
+      Cancelamentos devem ser feitos com antecedência. Entre em contato via WhatsApp. O reembolso (se aplicável) segue as políticas da clínica.
+    </div>
+  </div>
+</section>
+
+<div class="page-break"></div>
+
+<!-- FAQ ADMIN -->
+<section class="section" id="faq-admin">
+  <div class="section-header">
+    <div class="section-icon">👑</div>
+    <div>
+      <h2 class="section-title">FAQ - Perguntas do Administrador</h2>
+      <p class="section-subtitle">Dúvidas comuns sobre gerenciamento do sistema</p>
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Como adiciono um novo serviço?</div>
+    <div class="faq-answer">
+      Acesse o painel admin → "Serviços" → clique em "Novo Serviço". Preencha nome, preço, duração, descrição e ícone. Salve para publicar.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Como bloqueio um dia específico?</div>
+    <div class="faq-answer">
+      Vá em "Horários" → "Dias Fechados" → adicione a data. Ela não aparecerá para clientes. Você também pode bloquear intervalos específicos durante o dia.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Como configuro o horário de funcionamento?</div>
+    <div class="faq-answer">
+      Em "Horários", configure abertura e fechamento para cada dia da semana. Saturday pode ter horários diferentes de weekdays.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">O que acontece quando um pagamento PIX é confirmado?</div>
+    <div class="faq-answer">
+      O webhook do Asaas notifica a Cloud Function, que atualiza o status no Firestore. A página de pagamento detecta em tempo real e redireciona o cliente.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Como删除 um agendamento?</div>
+    <div class="faq-answer">
+      Na tabela de agendamentos, clique no ícone de lixeira. Será solicitado um motivo (opcional). A exclusão é registrada no histórico de audit logs.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Posso excluir múltiplos agendamentos de uma vez?</div>
+    <div class="faq-answer">
+      Sim! Selecione os agendamentos usando os checkboxes na tabela, depois clique em "Excluir Selecionados". Todos serão registrados no log.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Como funciona o scanner de QR Code?</div>
+    <div class="faq-answer">
+      Clique em "Check-in" no menu. Ative a câmera e escaneie o QR do cliente. O sistema mostra os detalhes e oferece avançar o status.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Posso customizar as cores do site?</div>
+    <div class="faq-answer">
+      As cores primárias estão no Tailwind config. Para branding white-label, será necessário modificar a paleta (verde #00e676, dourado #D4AF37).
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">Como adiciono um novo admin?</div>
+    <div class="faq-answer">
+      Por enquanto, adicionamos admins diretamente no Firestore na collection "admins". Future: painel de gerenciamento de admins.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-question">O sistema envia emails automáticos?</div>
+    <div class="faq-answer">
+      Atualmente não há emails automáticos. Notificações são via WhatsApp (check-in) e atualização em tempo real no site.
+    </div>
+  </div>
+</section>
+
+<!-- ARQUITETURA -->
+<section class="section" id="arquitetura">
+  <div class="section-header">
+    <div class="section-icon">🏗️</div>
+    <div>
+      <h2 class="section-title">Arquitetura do Sistema</h2>
+      <p class="section-subtitle">Visão técnica da stack e componentes</p>
+    </div>
+  </div>
+
+  <div class="architecture-diagram">
+    <div class="arch-layer">
+      <div class="arch-layer-title">🎨 Frontend (Cliente)</div>
+      <div class="arch-items">
+        <span class="arch-item">React 18 + Vite</span>
+        <span class="arch-item">React Router (SPA)</span>
+        <span class="arch-item">Tailwind CSS</span>
+        <span class="arch-item">Lucide React (ícones)</span>
+        <span class="arch-item">React QR Code</span>
+        <span class="arch-item">Html5 QR Scanner</span>
+      </div>
+    </div>
+
+    <div class="arch-layer">
+      <div class="arch-layer-title">☁️ Backend (Serverless)</div>
+      <div class="arch-items">
+        <span class="arch-item">Firebase Hosting</span>
+        <span class="arch-item">Cloud Functions (Node.js)</span>
+        <span class="arch-item">Firebase Auth</span>
+        <span class="arch-item">Firestore Database</span>
+        <span class="arch-item">Asaas API (PIX)</span>
+        <span class="arch-item">Vercel (CI/CD)</span>
+      </div>
+    </div>
+
+    <div class="arch-layer">
+      <div class="arch-layer-title">💾 Dados</div>
+      <div class="arch-items">
+        <span class="arch-item">Firestore (Real-time DB)</span>
+        <span class="arch-item">Firebase Auth (Users)</span>
+        <span class="arch-item">Local Storage (User prefs)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📊</div>
+      <h3 class="card-title">Fluxo de Dados Simplificado</h3>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Ação</th>
+            <th>Componente</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cliente acessa site</td>
+            <td>React SPA</td>
+            <td>Página carrega via Firebase Hosting</td>
+          </tr>
+          <tr>
+            <td>Lista serviços</td>
+            <td>Firestore onSnapshot</td>
+            <td>Dados em tempo real</td>
+          </tr>
+          <tr>
+            <td>Cria agendamento</td>
+            <td>Cloud Function</td>
+            <td>OS criada + slot bloqueado</td>
+          </tr>
+          <tr>
+            <td>Pagamento PIX</td>
+            <td>Asaas API</td>
+            <td>QR Code gerado</td>
+          </tr>
+          <tr>
+            <td>Confirma PIX</td>
+            <td>Webhook → Cloud Function</td>
+            <td>Status atualizado no Firestore</td>
+          </tr>
+          <tr>
+            <td>Cliente acompanha</td>
+            <td>Firestore listener</td>
+            <td>Timeline atualiza em tempo real</td>
+          </tr>
+          <tr>
+            <td>Admin escaneia QR</td>
+            <td>Html5 QR Scanner</td>
+            <td>Status avança no Firestore</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div class="page-break"></div>
+
+<!-- BANCO DE DADOS -->
+<section class="section" id="banco-dados">
+  <div class="section-header">
+    <div class="section-icon">🗄️</div>
+    <div>
+      <h2 class="section-title">Estrutura do Banco de Dados</h2>
+      <p class="section-subtitle">Collections e documentos do Firestore</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📁</div>
+      <h3 class="card-title">Collections Principais</h3>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Collection</th>
+            <th>Descrição</th>
+            <th>Documentos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>appointments</code></td>
+            <td>Agendamentos/Ordens de Serviço</td>
+            <td>Cada OS é um documento</td>
+          </tr>
+          <tr>
+            <td><code>services</code></td>
+            <td>Catálogo de serviços</td>
+            <td>Um doc por serviço</td>
+          </tr>
+          <tr>
+            <td><code>users</code></td>
+            <td>Perfis de usuários</td>
+            <td>UID como ID do doc</td>
+          </tr>
+          <tr>
+            <td><code>admins</code></td>
+            <td>Lista de admins</td>
+            <td>UID como ID do doc</td>
+          </tr>
+          <tr>
+            <td><code>config</code></td>
+            <td>Configurações gerais</td>
+            <td>Documento "main" com horários, PIX, etc.</td>
+          </tr>
+          <tr>
+            <td><code>site_texts</code></td>
+            <td>Textos personalizáveis</td>
+            <td>Textos do site por seção</td>
+          </tr>
+          <tr>
+            <td><code>promotions</code></td>
+            <td>Promoções ativas</td>
+            <td>Uma por promoção</td>
+          </tr>
+          <tr>
+            <td><code>reschedule_requests</code></td>
+            <td>Pedidos de reagendamento</td>
+            <td>Um por solicitação</td>
+          </tr>
+          <tr>
+            <td><code>audit_logs</code></td>
+            <td>Logs de auditoria</td>
+            <td>Registro de exclusões/alterações</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📋</div>
+      <h3 class="card-title">Estrutura de um Appointment</h3>
+    </div>
+
+    <pre style="background: #000; padding: 1rem; border-radius: 8px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">
+{
+  id: "docId",
+  os: "BC-2026-123456",           // Número da OS
+  name: "João Silva",
+  celular: "11999999999",
+  car: "Honda Civic",
+  plate: "ABC1D23",
+  carId: "car-doc-id",
+  services: [                      // Array de serviços
+    { id: "polimento", name: "Polimento", price: 350 }
+  ],
+  totalPrice: 350,
+  totalDuration: 180,
+  date: "2026-01-15",
+  time: "09:00",
+  status: "Agendado",              // Status atual
+  pixStatus: "paid",               // Estado do PIX
+  pixPaymentId: "pay_xxx",         // ID no Asaas
+  pixAmount: 350,
+  userId: "firebase-uid",
+  timeline: [                      // Histórico de status
+    { status: "Agendado", date: "2026-01-10T10:00:00Z" }
+  ],
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+    </pre>
+  </div>
+</section>
+
+<!-- URLs -->
+<section class="section" id="urls">
+  <div class="section-header">
+    <div class="section-icon">🔗</div>
+    <div>
+      <h2 class="section-title">Lista de URLs / Rotas</h2>
+      <p class="section-subtitle">Todas as páginas e endpoints do sistema</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🌐</div>
+      <h3 class="card-title">Rotas do Frontend</h3>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Rota</th>
+            <th>Página</th>
+            <th>Público</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/</code></td>
+            <td>Home (página inicial)</td>
+            <td>Público</td>
+          </tr>
+          <tr>
+            <td><code>/booking</code></td>
+            <td>Novo agendamento</td>
+            <td>Cliente</td>
+          </tr>
+          <tr>
+            <td><code>/pagamento/:id</code></td>
+            <td>Pagamento PIX</td>
+            <td>Cliente</td>
+          </tr>
+          <tr>
+            <td><code>/track</code></td>
+            <td>Acompanhamento</td>
+            <td>Cliente</td>
+          </tr>
+          <tr>
+            <td><code>/login</code></td>
+            <td>Login admin</td>
+            <td>Admin</td>
+          </tr>
+          <tr>
+            <td><code>/signup</code></td>
+            <td>Cadastro cliente</td>
+            <td>Cliente</td>
+          </tr>
+          <tr>
+            <td><code>/admin</code></td>
+            <td>Painel administrativo</td>
+            <td>Admin</td>
+          </tr>
+          <tr>
+            <td><code>/admin/horarios</code></td>
+            <td>Configurar horários</td>
+            <td>Admin</td>
+          </tr>
+          <tr>
+            <td><code>/admin/servicos</code></td>
+            <td>Gerenciar serviços</td>
+            <td>Admin</td>
+          </tr>
+          <tr>
+            <td><code>/admin/textos</code></td>
+            <td>Editar textos</td>
+            <td>Admin</td>
+          </tr>
+          <tr>
+            <td><code>/admin/promocoes</code></td>
+            <td>Gerenciar promoções</td>
+            <td>Admin</td>
+          </tr>
+          <tr>
+            <td><code>/admin/pix</code></td>
+            <td>Configurar PIX</td>
+            <td>Admin</td>
+          </tr>
+          <tr>
+            <td><code>/admin/analytics</code></td>
+            <td>Métricas</td>
+            <td>Admin</td>
+          </tr>
+          <tr>
+            <td><code>/admin/trabalhos</code></td>
+            <td>Agenda de trabalhos</td>
+            <td>Admin</td>
+          </tr>
+          <tr>
+            <td><code>/admin/historico</code></td>
+            <td>Logs de auditoria</td>
+            <td>Admin</td>
+          </tr>
+          <tr>
+            <td><code>/admin/reagendamentos</code></td>
+            <td>Pedidos de reagendamento</td>
+            <td>Admin</td>
+          </tr>
+          <tr>
+            <td><code>/admin/configuracoes</code></td>
+            <td>Configurações gerais</td>
+            <td>Admin</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">⚡</div>
+      <h3 class="card-title">Cloud Functions</h3>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Função</th>
+            <th>Tipo</th>
+            <th>Descrição</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>createAppointmentWithSlotLock</code></td>
+            <td>HTTPS Callable</td>
+            <td>Cria OS com reserva atômica de horário</td>
+          </tr>
+          <tr>
+            <td><code>createAsaasPayment</code></td>
+            <td>HTTPS Callable</td>
+            <td>Gera QR Code PIX via Asaas</td>
+          </tr>
+          <tr>
+            <td><code>asaasWebhook</code></td>
+            <td>HTTP (Webhook)</td>
+            <td>Recebe notificações de pagamento</td>
+          </tr>
+          <tr>
+            <td><code>checkExpiredPayments</code></td>
+            <td>Scheduled (5 min)</td>
+            <td>Libera slots expirados</td>
+          </tr>
+          <tr>
+            <td><code>bootstrapAdminHttp</code></td>
+            <td>HTTP</td>
+            <td>Torna usuário admin</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- COMO SALVAR PARA PDF -->
+<section class="section" id="imprimir">
+  <div class="section-header">
+    <div class="section-icon">📄</div>
+    <div>
+      <h2 class="section-title">Como Salvar como PDF</h2>
+      <p class="section-subtitle">Instruções para exportar os manuais</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🖨️</div>
+      <h3 class="card-title">Método 1: Imprimir do Navegador</h3>
+    </div>
+    <ol style="margin: 1rem 0; padding-left: 1.5rem;">
+      <li style="margin-bottom: 0.5rem;">Abra o arquivo HTML no navegador (Chrome/Edge recomendado)</li>
+      <li style="margin-bottom: 0.5rem;">Pressione <code>Ctrl + P</code> (ou <code>Cmd + P</code> no Mac)</li>
+      <li style="margin-bottom: 0.5rem;">Em "Destino", selecione "Salvar como PDF"</li>
+      <li style="margin-bottom: 0.5rem;">Marque "Gráficos de fundo" para manter as cores</li>
+      <li>Clique em "Salvar"</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🔄</div>
+      <h3 class="card-title">Método 2: Unificar em Um PDF</h3>
+    </div>
+    <p style="margin-bottom: 1rem;">
+      Para criar um único PDF com todas as partes:
+    </p>
+    <ol style="margin: 1rem 0; padding-left: 1.5rem;">
+      <li style="margin-bottom: 0.5rem;">Salve cada parte como PDF separadamente</li>
+      <li style="margin-bottom: 0.5rem;">Abra o Adobe Acrobat ou similar</li>
+      <li style="margin-bottom: 0.5rem;">Use "Combinar arquivos" para unir</li>
+      <li>Ou use ferramentas online como ilovepdf.com/merge-pdf</li>
+    </ol>
+
+    <div class="alert alert-info">
+      <span class="alert-icon">📁</span>
+      <div>
+        <div class="alert-title">Arquivos do Manual</div>
+        <div class="alert-content">
+          <code>docs/manual-sistema-parte1.html</code> - Fluxo do Cliente<br>
+          <code>docs/manual-sistema-parte2-admin.html</code> - Painel Admin<br>
+          <code>docs/manual-sistema-parte3-referencias.html</code> - FAQ e Arquitetura
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <p>Manual Completo - BrilhoCar Estética Automotiva</p>
+  <p style="margin-top: 0.5rem;">Versão 1.0 - 2026 | 3 partes | Pronto para PDF</p>
+</footer>
+
+</body>
+</html>

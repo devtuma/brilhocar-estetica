@@ -4,6 +4,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Sparkles, Shield, Clock, Star, ArrowRight, Droplets, CarFront, CheckCircle2, Sun, Wrench, Crown } from 'lucide-react';
 import { useTexts } from '../hooks/useConfig';
+import { useTenant } from '../contexts/TenantContext';
 import PromotionBanner from '../components/PromotionBanner';
 
 // Mapa de ícones disponíveis
@@ -13,7 +14,13 @@ const ICON_MAP = {
 
 export default function Home() {
   const { texts } = useTexts();
+  const { tenant } = useTenant();
   const [services, setServices] = useState([]);
+
+  // Nome do tenant para branding dinâmico
+  const tenantName = tenant?.logoText || 'BrilhoCar';
+  const displayName = tenant?.displayName || 'BrilhoCar Estética Automotiva';
+  const city = tenant?.contact?.city || 'Mauá';
 
   // Defaults baseados no que está online agora
   const hero = {
@@ -64,7 +71,7 @@ export default function Home() {
         <div className="relative z-10 text-center max-w-4xl mx-auto px-4">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-gray-800 text-accent text-xs md:text-sm font-bold mb-8 shadow-lg">
             <Star size={16} fill="currentColor" className="pb-0.5" />
-            <span className="tracking-wide uppercase">Estética Automotiva Premium em Mauá</span>
+            <span className="tracking-wide uppercase">Estética Automotiva Premium em {city}</span>
           </div>
 
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-black mb-6 tracking-tight leading-tight">
@@ -183,7 +190,7 @@ export default function Home() {
       <section className="py-20 px-4 bg-[#08080b] border-y border-gray-800/50 mt-8">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-12 lg:gap-20 items-center">
           <div className="flex-1 space-y-8">
-            <h2 className="text-3xl md:text-5xl font-bold leading-tight">Por que escolher a <br/><span className="text-primary">BrilhoCar</span>?</h2>
+            <h2 className="text-3xl md:text-5xl font-bold leading-tight">Por que escolher a <br/><span className="text-primary">{tenantName}</span>?</h2>
 
             <div className="space-y-8">
               <div className="flex gap-5">
