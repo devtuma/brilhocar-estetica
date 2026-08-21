@@ -41,29 +41,52 @@ export default function CheckinScanner() {
     setSuccess(null);
 
     try {
+      // Primeiro verificar se a API está disponível
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError('Seu navegador não suporta acesso à câmera. Use a entrada manual abaixo.');
+        return;
+      }
+
+      // Solicitar acesso à câmera (ambiente = câmera traseira, preferida)
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
       });
       streamRef.current = stream;
 
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        const video = videoRef.current;
+        video.srcObject = stream;
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('autoplay', 'true');
+        video.muted = true;
+
+        // Aguardar o vídeo estar pronto antes de iniciar scanning
+        video.onloadedmetadata = () => {
+          video.play().then(() => {
+            setIsScanning(true);
+            // Iniciar scanning de QR Code após vídeo estar pronto
+            scanIntervalRef.current = setInterval(scanQRCode, 500);
+          }).catch(err => {
+            console.error('Erro ao dar play:', err);
+          });
+        };
       }
-
-      setIsScanning(true);
-
-      // Iniciar scanning de QR Code
-      scanIntervalRef.current = setInterval(scanQRCode, 500);
 
     } catch (err) {
       console.error('Erro ao acessar câmera:', err);
-      if (err.name === 'NotAllowedError') {
-        setCameraError('Câmera não permitida. Permita o acesso à câmera e tente novamente.');
-      } else if (err.name === 'NotFoundError') {
-        setCameraError('Câmera não encontrada. Verifique se seu dispositivo tem câmera.');
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setCameraError('Câmera bloqueada. Permita o acesso à câmera no seu navegador (ícone de cadeado na barra de endereço) e tente novamente.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setCameraError('Câmera não encontrada. Use a entrada manual abaixo digitando a OS do cliente.');
+      } else if (err.name === 'NotReadableError') {
+        setCameraError('Câmera em uso por outro aplicativo. Feche outros programas e tente novamente.');
       } else {
-        setCameraError('Erro ao acessar câmera: ' + err.message);
+        setCameraError('Erro ao acessar câmera: ' + (err.message || err.name) + '. Use a entrada manual abaixo.');
       }
     }
   }, []);
@@ -76,7 +99,16 @@ export default function CheckinScanner() {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+      console.log('Vídeo ainda não está pronto, readyState:', video.readyState);
+      return;
+    }
+
+    // Verificar dimensões válidas
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.log('Vídeo sem dimensões válidas');
+      return;
+    }
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -86,11 +118,17 @@ export default function CheckinScanner() {
 
     // Usar jsQR se disponível, senão mostrar instrução manual
     if (window.jsQR) {
-      const code = window.jsQR(imageData.data, canvas.width, canvas.height);
-      if (code) {
-        stopCamera();
-        handleScannedCode(code.data);
+      try {
+        const code = window.jsQR(imageData.data, canvas.width, canvas.height);
+        if (code) {
+          stopCamera();
+          handleScannedCode(code.data);
+        }
+      } catch (err) {
+        console.error('Erro ao processar QR:', err);
       }
+    } else {
+      console.warn('jsQR não está disponível - aguarde carregar');
     }
   }, [stopCamera]);
 
@@ -179,12 +217,22 @@ export default function CheckinScanner() {
 
   // Carregar jsQR library
   useEffect(() => {
-    if (!window.jsQR) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
-      script.async = true;
-      document.body.appendChild(script);
+    if (window.jsQR) {
+      console.log('jsQR já está carregado');
+      return;
     }
+
+    console.log('Carregando jsQR...');
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+    script.async = true;
+    script.onload = () => {
+      console.log('jsQR carregado com sucesso');
+    };
+    script.onerror = () => {
+      console.error('Falha ao carregar jsQR');
+    };
+    document.body.appendChild(script);
   }, []);
 
   // Entrada manual de OS
