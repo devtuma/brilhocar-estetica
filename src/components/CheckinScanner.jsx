@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, X, CheckCircle, AlertCircle, Clock, User, Car, QrCode, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Camera, X, CheckCircle, AlertCircle, Clock, User, Car, QrCode, Loader2, RefreshCw } from 'lucide-react';
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../firebase';
+import { functions, db } from '../firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
 
 export default function CheckinScanner() {
   const [isScanning, setIsScanning] = useState(false);
@@ -12,145 +11,184 @@ export default function CheckinScanner() {
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
   const [cameraError, setCameraError] = useState(null);
+  const [debugInfo, setDebugInfo] = useState('');
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const scanIntervalRef = useRef(null);
 
   // Parar câmera
-  const stopCamera = useCallback(() => {
+  const stopCamera = () => {
+    console.log('[Scanner] Parando câmera...');
     if (scanIntervalRef.current) {
       clearInterval(scanIntervalRef.current);
       scanIntervalRef.current = null;
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+      });
       streamRef.current = null;
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
     setIsScanning(false);
-  }, []);
+  };
 
   // Iniciar câmera
-  const startCamera = useCallback(async () => {
+  const startCamera = async () => {
     setError(null);
     setCameraError(null);
     setScannedData(null);
     setSuccess(null);
+    setDebugInfo('Solicitando acesso...');
 
     try {
-      // Primeiro verificar se a API está disponível
+      // Verificar suporte
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setCameraError('Seu navegador não suporta acesso à câmera. Use a entrada manual abaixo.');
+        setCameraError('Navegador não suporta câmera. Use a entrada manual abaixo.');
+        setDebugInfo('API não disponível');
         return;
       }
 
-      // Solicitar acesso à câmera (ambiente = câmera traseira, preferida)
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: false
-      });
+      setDebugInfo('Solicitando stream...');
+
+      // Tentar primeiro com câmera traseira (mobile)
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+      } catch (err1) {
+        console.warn('Falha com facingMode environment, tentando qualquer câmera:', err1);
+        // Fallback para qualquer câmera
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+          });
+        } catch (err2) {
+          console.error('Falha total ao acessar câmera:', err2);
+          throw err2;
+        }
+      }
+
       streamRef.current = stream;
+      setDebugInfo('Stream obtido, configurando vídeo...');
+
+      // Aguardar o próximo ciclo para garantir que o videoRef está montado
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       if (videoRef.current) {
         const video = videoRef.current;
-        video.srcObject = stream;
+
+        // Configurar atributos
         video.setAttribute('playsinline', 'true');
         video.setAttribute('autoplay', 'true');
         video.muted = true;
 
-        // Aguardar o vídeo estar pronto antes de iniciar scanning
-        video.onloadedmetadata = () => {
-          video.play().then(() => {
-            setIsScanning(true);
-            // Iniciar scanning de QR Code após vídeo estar pronto
-            scanIntervalRef.current = setInterval(scanQRCode, 500);
-          }).catch(err => {
-            console.error('Erro ao dar play:', err);
-          });
-        };
+        video.srcObject = stream;
+
+        // Forçar play
+        try {
+          await video.play();
+        } catch (playErr) {
+          console.warn('Erro no play:', playErr);
+        }
+
+        setDebugInfo(`Vídeo: ${video.videoWidth}x${video.videoHeight}, readyState: ${video.readyState}`);
+        setIsScanning(true);
+
+        // Aguardar e iniciar scanning
+        setTimeout(() => {
+          if (video.videoWidth > 0) {
+            setDebugInfo(`Escaneando: ${video.videoWidth}x${video.videoHeight}`);
+          } else {
+            setDebugInfo('⚠️ Vídeo sem dimensões, verifique permissões');
+          }
+          scanIntervalRef.current = setInterval(scanQRCode, 500);
+        }, 500);
+      } else {
+        setCameraError('Elemento de vídeo não encontrado. Tente novamente.');
+        setDebugInfo('videoRef null');
       }
 
     } catch (err) {
-      console.error('Erro ao acessar câmera:', err);
+      console.error('[Scanner] Erro ao acessar câmera:', err);
+      setDebugInfo(`Erro: ${err.name} - ${err.message}`);
+
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setCameraError('Câmera bloqueada. Permita o acesso à câmera no seu navegador (ícone de cadeado na barra de endereço) e tente novamente.');
+        setCameraError('Câmera bloqueada. Clique no ícone de câmera na barra de endereço e permita o acesso. Depois recarregue a página.');
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        setCameraError('Câmera não encontrada. Use a entrada manual abaixo digitando a OS do cliente.');
-      } else if (err.name === 'NotReadableError') {
+        setCameraError('Nenhuma câmera encontrada. Conecte uma webcam ou use a entrada manual abaixo.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
         setCameraError('Câmera em uso por outro aplicativo. Feche outros programas e tente novamente.');
+      } else if (err.name === 'OverconstrainedError') {
+        setCameraError('Câmera não suporta os requisitos. Tente usar a entrada manual abaixo.');
+      } else if (err.name === 'SecurityError') {
+        setCameraError('Erro de segurança. Verifique se está usando HTTPS.');
       } else {
-        setCameraError('Erro ao acessar câmera: ' + (err.message || err.name) + '. Use a entrada manual abaixo.');
+        setCameraError(`Erro: ${err.message || err.name}. Use a entrada manual abaixo.`);
       }
     }
-  }, []);
+  };
 
   // Escanear QR Code
-  const scanQRCode = useCallback(() => {
+  const scanQRCode = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      console.log('Vídeo ainda não está pronto, readyState:', video.readyState);
-      return;
-    }
-
-    // Verificar dimensões válidas
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      console.log('Vídeo sem dimensões válidas');
-      return;
-    }
+    if (video.readyState < 2) return; // HAVE_CURRENT_DATA
+    if (video.videoWidth === 0 || video.videoHeight === 0) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    try {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    // Usar jsQR se disponível, senão mostrar instrução manual
-    if (window.jsQR) {
-      try {
-        const code = window.jsQR(imageData.data, canvas.width, canvas.height);
-        if (code) {
+      if (window.jsQR) {
+        const code = window.jsQR(imageData.data, canvas.width, canvas.height, {
+          inversionAttempts: 'dontInvert'
+        });
+        if (code && code.data) {
+          console.log('[Scanner] QR detectado:', code.data);
           stopCamera();
           handleScannedCode(code.data);
         }
-      } catch (err) {
-        console.error('Erro ao processar QR:', err);
       }
-    } else {
-      console.warn('jsQR não está disponível - aguarde carregar');
+    } catch (err) {
+      console.error('[Scanner] Erro ao processar frame:', err);
     }
-  }, [stopCamera]);
+  };
 
   // Processar código escaneado
   const handleScannedCode = async (code) => {
     setScannedData(null);
     setError(null);
     setSuccess(null);
+    setLoading(true);
 
     try {
-      // O QR Code contém a OS (ex: BC-2026-123456) ou appointmentId
       const osMatch = code.match(/BC-\d{4}-\d{6}/);
       const appointmentId = osMatch ? null : code;
 
       if (!osMatch && !appointmentId) {
-        setError('QR Code inválido. Este QR Code não pertence a um agendamento da BrilhoCar.');
+        setError('QR Code inválido. Este QR Code não pertence a um agendamento.');
+        setLoading(false);
         return;
       }
 
-      setLoading(true);
-
-      // Buscar agendamento
       const findAppointment = httpsCallable(functions, 'findAppointmentByOS');
       const result = await findAppointment({
         os: osMatch ? osMatch[0] : null,
@@ -164,7 +202,7 @@ export default function CheckinScanner() {
       }
 
     } catch (err) {
-      console.error('Erro ao buscar agendamento:', err);
+      console.error('[Scanner] Erro ao buscar agendamento:', err);
       setError(err.message || 'Erro ao processar QR Code.');
     } finally {
       setLoading(false);
@@ -187,11 +225,9 @@ export default function CheckinScanner() {
         status: newStatus,
         checkinAt: serverTimestamp(),
         checkinBy: 'admin',
-        timeline: [],
         updatedAt: serverTimestamp()
       });
 
-      // Adicionar ao timeline manualmente via callable function
       const updateTimeline = httpsCallable(functions, 'addTimelineEntry');
       await updateTimeline({
         appointmentId: scannedData.id,
@@ -203,7 +239,7 @@ export default function CheckinScanner() {
       setScannedData(null);
 
     } catch (err) {
-      console.error('Erro ao confirmar check-in:', err);
+      console.error('[Scanner] Erro ao confirmar check-in:', err);
       setError(err.message || 'Erro ao confirmar check-in.');
     } finally {
       setLoading(false);
@@ -213,25 +249,17 @@ export default function CheckinScanner() {
   // Cleanup ao desmontar
   useEffect(() => {
     return () => stopCamera();
-  }, [stopCamera]);
+  }, []);
 
   // Carregar jsQR library
   useEffect(() => {
-    if (window.jsQR) {
-      console.log('jsQR já está carregado');
-      return;
-    }
+    if (window.jsQR) return;
 
-    console.log('Carregando jsQR...');
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
     script.async = true;
-    script.onload = () => {
-      console.log('jsQR carregado com sucesso');
-    };
-    script.onerror = () => {
-      console.error('Falha ao carregar jsQR');
-    };
+    script.onload = () => console.log('[Scanner] jsQR carregado');
+    script.onerror = () => console.error('[Scanner] Falha ao carregar jsQR');
     document.body.appendChild(script);
   }, []);
 
@@ -267,6 +295,8 @@ export default function CheckinScanner() {
               className="w-full h-full object-cover"
               playsInline
               muted
+              autoPlay
+              style={{ display: 'block', width: '100%', height: '100%' }}
             />
             {/* Overlay de scanning */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -288,6 +318,13 @@ export default function CheckinScanner() {
           </div>
           <canvas ref={canvasRef} className="hidden" />
 
+          {/* Debug info */}
+          {debugInfo && (
+            <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-300 font-mono">
+              [DEBUG] {debugInfo}
+            </div>
+          )}
+
           <button
             onClick={stopCamera}
             className="mt-4 w-full px-6 py-3 bg-red-500/20 border border-red-500/30 text-red-400 font-semibold rounded-xl hover:bg-red-500/30 transition-colors flex items-center justify-center gap-2"
@@ -301,7 +338,8 @@ export default function CheckinScanner() {
           {/* Botão iniciar câmera */}
           <button
             onClick={startCamera}
-            className="w-full px-6 py-4 bg-primary text-black font-bold rounded-xl hover:bg-[#00c853] transition-colors flex items-center justify-center gap-3"
+            disabled={loading}
+            className="w-full px-6 py-4 bg-primary text-black font-bold rounded-xl hover:bg-[#00c853] transition-colors flex items-center justify-center gap-3 disabled:opacity-50"
           >
             <Camera size={22} />
             Abrir Câmera
@@ -317,6 +355,13 @@ export default function CheckinScanner() {
                   <p className="text-red-300/80 text-sm mt-1">{cameraError}</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Debug info quando não está escaneando */}
+          {debugInfo && !cameraError && (
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-xs text-blue-300 font-mono">
+              [DEBUG] {debugInfo}
             </div>
           )}
 
@@ -421,7 +466,7 @@ export default function CheckinScanner() {
             <div className="pt-3 border-t border-gray-700">
               <p className="text-sm text-gray-400 mb-2">Serviços:</p>
               <div className="flex flex-wrap gap-2">
-                {(scannedData.services || scannedData.serviceNames || '').map((s, i) => (
+                {(scannedData.services || []).map((s, i) => (
                   <span key={i} className="px-3 py-1 bg-primary/10 text-primary rounded-lg text-sm font-semibold">
                     {typeof s === 'string' ? s : s.name}
                   </span>
