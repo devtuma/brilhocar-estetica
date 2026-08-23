@@ -6,6 +6,7 @@ import { Sparkles, Shield, Clock, Star, ArrowRight, Droplets, CarFront, CheckCir
 import { useTexts } from '../hooks/useConfig';
 import { useTenant } from '../contexts/TenantContext';
 import PromotionBanner from '../components/PromotionBanner';
+import BeforeAfterGallery from '../components/BeforeAfterGallery';
 
 // Mapa de ícones disponíveis
 const ICON_MAP = {
@@ -185,6 +186,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* BEFORE & AFTER GALLERY */}
+      <BeforeAfterGallery />
 
       {/* WHY US SECTION */}
       <section className="py-20 px-4 bg-[#08080b] border-y border-gray-800/50 mt-8">

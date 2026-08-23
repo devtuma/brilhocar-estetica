@@ -22,6 +22,7 @@ import AdminReagendamentos from './pages/admin/Reagendamentos';
 import AdminConfiguracoes from './pages/admin/Configuracoes';
 import Schedule from './pages/admin/Schedule';
 import Branding from './pages/admin/Branding';
+import Gallery from './pages/admin/Gallery';
 import Login from './pages/Login';
 import Track from './pages/Track';
 import ClientLogin from './pages/ClientLogin';
@@ -221,10 +222,9 @@ function App() {
             <Route path="/admin/configuracoes" element={<ProtectedRoute><AdminLayout><AdminConfiguracoes /></AdminLayout></ProtectedRoute>} />
             <Route path="/admin/trabalhos" element={<ProtectedRoute><AdminLayout><Schedule /></AdminLayout></ProtectedRoute>} />
             <Route path="/admin/branding" element={<ProtectedRoute><AdminLayout><Branding /></AdminLayout></ProtectedRoute>} />
+            <Route path="/admin/galeria" element={<ProtectedRoute><AdminLayout><Gallery /></AdminLayout></ProtectedRoute>} />
             <Route path="/checkin" element={<ProtectedRoute><AdminLayout><Checkin /></AdminLayout></ProtectedRoute>} />
           </Routes>
-          <AdminAccess />
-          <Footer />
         </BrandingWrapper>
       </TenantProvider>
     </BrowserRouter>
