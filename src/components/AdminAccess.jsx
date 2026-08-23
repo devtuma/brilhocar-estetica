@@ -52,11 +52,7 @@ export default function AdminAccess() {
         e.preventDefault();
         if (user && isAdmin) {
           navigate('/admin');
-        } else if (user) {
-          // Usuário logado mas não admin
-          setShowLogin(true);
         } else {
-          // Não está logado - abre modal
           setShowLogin(true);
         }
       }
@@ -69,38 +65,20 @@ export default function AdminAccess() {
     return () => window.removeEventListener('keydown', handleKey);
   }, [user, isAdmin, navigate]);
 
-  // Easter egg: clicar 5x no logo (chamado pelo App.jsx)
+  // Easter egg: clicar 5x no logo (via evento customizado do App.jsx)
   useEffect(() => {
-    let clicks = [];
-    const handler = () => {
+    const handleClick = () => {
       if (user && isAdmin) {
         navigate('/admin');
       } else {
         setShowLogin(true);
       }
     };
-    
-    const handleClick = () => {
-      const now = Date.now();
-      clicks = clicks.filter(t => now - t < 3000);
-      clicks.push(now);
-      if (clicks.length >= 5) {
-        clicks = [];
-        handler();
-      }
-    };
-    
-    // Registrar globalmente para ser chamado pelo App.jsx
-    window.__adminEasterEgg = handleClick;
-    
-    // Listener direto no documento para o logo
+
     document.addEventListener('adminEasterEgg', handleClick);
-    
+
     return () => {
       document.removeEventListener('adminEasterEgg', handleClick);
-      if (window.__adminEasterEgg === handleClick) {
-        delete window.__adminEasterEgg;
-      }
     };
   }, [user, isAdmin, navigate]);
 
