@@ -1,10 +1,13 @@
+import * as functions from 'firebase-functions';
 import * as crypto from 'crypto';
 
 /**
  * Módulo de criptografia AES-256-GCM para proteger secrets (API keys, etc.)
  *
  * Padrão de uso:
- *   - MASTER_KEY salva em process.env.MASTER_KEY (configurada via firebase functions:config)
+ *   - MASTER_KEY configurada via Firebase Functions config:
+ *     firebase functions:config:set crypto.master_key="<hex-32-bytes>"
+ *   - OU via process.env.MASTER_KEY (definida em runtime)
  *   - Salt por tenant gerado e salvo no Firestore
  *   - Cada secret criptografado inclui IV + authTag + ciphertext
  */
@@ -15,7 +18,11 @@ const KEY_LENGTH = 32; // 256 bits
 const AUTH_TAG_LENGTH = 16;
 
 function getMasterKey(): Buffer {
-  const masterKey = process.env.MASTER_KEY;
+  // Tenta primeiro Firebase Functions config (criptografado no Firebase)
+  const configKey = functions.config().crypto?.master_key;
+
+  // Fallback para env var
+  const masterKey = configKey || process.env.MASTER_KEY;
 
   if (!masterKey) {
     throw new Error(
@@ -24,7 +31,7 @@ function getMasterKey(): Buffer {
   }
 
   // Converter hex string para buffer, ou fazer hash SHA-256 de string normal
-  if (masterKey.length === 64) {
+  if (masterKey.length === 64 && /^[0-9a-f]+$/i.test(masterKey)) {
     // Já é hex de 64 chars (32 bytes)
     return Buffer.from(masterKey, 'hex');
   }
