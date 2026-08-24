@@ -32,208 +32,44 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadGalleryImage = exports.getTenantConfig = exports.initializeDefaultTenant = exports.addTimelineEntry = exports.findAppointmentByOS = exports.createAppointmentWithSlotLock = exports.simulatePaymentConfirmed = exports.checkExpiredPayments = exports.seedServices = exports.bootstrapAdminHttp = exports.bootstrapAdmin = exports.saveTransaction = exports.cancelPixPayment = exports.asaasWebhook = exports.checkPixPaymentStatus = exports.createPixPaymentForAppointment = void 0;
+exports.testAsaasConnectionFn = exports.saveTenantConfig = exports.uploadGalleryImage = exports.getTenantConfig = exports.initializeDefaultTenant = exports.addTimelineEntry = exports.findAppointmentByOS = exports.createAppointmentWithSlotLock = exports.simulatePaymentConfirmed = exports.checkExpiredPayments = exports.seedServices = exports.bootstrapAdminHttp = exports.bootstrapAdmin = exports.saveTransaction = exports.cancelPixPayment = exports.asaasWebhook = exports.checkPixPaymentStatus = exports.createPixPaymentForAppointment = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
-const axios_1 = __importDefault(require("axios"));
 const dotenv = __importStar(require("dotenv"));
-const cors = require('cors');
+const crypto_1 = require("./crypto");
+const asaas_1 = require("./asaas");
 // Carregar variáveis de ambiente do .env.local
 dotenv.config({ path: '.env.local' });
 // Inicializar Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
 // ============================================
-// CONFIGURAÇÕES ASAAS
+// BUCKET FIXO (resolve erro "bucket does not exist")
 // ============================================
-const ASAAS_BASE_URL = ((_a = functions.config().asaas) === null || _a === void 0 ? void 0 : _a.environment) === 'production'
-    ? 'https://api.asaas.com/v3'
-    : 'https://sandbox.asaas.com/api/v3';
-const ASAAS_API_KEY = ((_b = functions.config().asaas) === null || _b === void 0 ? void 0 : _b.api_key) || process.env.ASAAS_API_KEY || '';
-// Log para debug (apenas primeiros 10 chars) - ajuda a diagnosticar problemas de config
-console.log(`[Asaas] URL: ${ASAAS_BASE_URL}`);
-console.log(`[Asaas] API Key presente: ${ASAAS_API_KEY ? 'SIM (length=' + ASAAS_API_KEY.length + ')' : 'NÃO - VAZIO!'}`);
-// Headers para API Asaas
-const asaasHeaders = {
-    'access_token': ASAAS_API_KEY,
-    'Content-Type': 'application/json'
-};
+const STORAGE_BUCKET = process.env.STORAGE_BUCKET
+    || 'brilhocar-estetica-9f14b.firebasestorage.app';
+function getStorageBucket() {
+    return admin.storage().bucket(STORAGE_BUCKET);
+}
 // ============================================
-// FUNÇÕES ASAAS
+// TYPES
 // ============================================
-/**
- * Criar ou buscar cliente no Asaas
- */
-async function getOrCreateAsaasCustomer(userData) {
-    var _a, _b, _c, _d;
-    const celularLimpo = userData.celular.replace(/\D/g, '');
-    // IMPORTANTE: Asaas sandbox EXIGE CPF/CNPJ para criar pagamentos PIX
-    // CPFs de teste válidos para Asaas sandbox: 12345678909, 11144477735, etc.
-    // Se não informar, geramos a partir do celular (fixo, determinístico)
-    const cpfCnpj = userData.cpfCnpj || gerarCpfFromCelular(celularLimpo);
-    try {
-        // Buscar cliente existente pelo CPF (mais confiável)
-        const response = await axios_1.default.get(`${ASAAS_BASE_URL}/customers`, {
-            headers: asaasHeaders,
-            params: { cpfCnpj }
-        });
-        if (response.data.data && response.data.data.length > 0) {
-            console.log(`Cliente Asaas encontrado: ${response.data.data[0].id}`);
-            return response.data.data[0].id;
-        }
-    }
-    catch (error) {
-        console.log('Busca de cliente falhou (normal se não existe), criando novo...', error === null || error === void 0 ? void 0 : error.message);
-    }
-    // Criar novo cliente
-    // IMPORTANTE: Asaas EXIGE CPF/CNPJ para criar pagamento PIX
-    const customerData = {
-        name: userData.name,
-        phone: celularLimpo,
-        cpfCnpj: cpfCnpj,
-        externalReference: `celular:${celularLimpo}`,
-        notificationDisabled: false,
-    };
-    if (userData.email) {
-        customerData.email = userData.email;
-    }
-    else {
-        customerData.email = `${celularLimpo}@brilhocar.com.br`;
-    }
-    try {
-        const response = await axios_1.default.post(`${ASAAS_BASE_URL}/customers`, customerData, {
-            headers: asaasHeaders
-        });
-        console.log(`Cliente Asaas criado: ${response.data.id} (cpf=${cpfCnpj})`);
-        return response.data.id;
-    }
-    catch (error) {
-        const status = (_a = error === null || error === void 0 ? void 0 : error.response) === null || _a === void 0 ? void 0 : _a.status;
-        const errorBody = (_b = error === null || error === void 0 ? void 0 : error.response) === null || _b === void 0 ? void 0 : _b.data;
-        console.error('Erro ao criar cliente Asaas:', {
-            status,
-            body: errorBody,
-            message: error === null || error === void 0 ? void 0 : error.message,
-            sentData: customerData
-        });
-        throw new Error(`Falha ao criar cliente no Asaas (${status}): ${JSON.stringify(((_d = (_c = errorBody === null || errorBody === void 0 ? void 0 : errorBody.errors) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.description) || errorBody || (error === null || error === void 0 ? void 0 : error.message))}`);
-    }
-}
-/**
- * Calcula os dígitos verificadores de um CPF (para gerar CPFs válidos)
- */
-function calcularDigitosCpf(base) {
-    // Primeiro dígito verificador
-    let soma1 = 0;
-    for (let i = 0; i < 9; i++) {
-        soma1 += base[i] * (10 - i);
-    }
-    let resto1 = soma1 % 11;
-    const dig1 = resto1 < 2 ? 0 : 11 - resto1;
-    // Segundo dígito verificador
-    const base2 = [...base, dig1];
-    let soma2 = 0;
-    for (let i = 0; i < 10; i++) {
-        soma2 += base2[i] * (11 - i);
-    }
-    let resto2 = soma2 % 11;
-    const dig2 = resto2 < 2 ? 0 : 11 - resto2;
-    return [dig1, dig2];
-}
-/**
- * Gera um CPF válido (apenas para TESTES no Asaas sandbox)
- * Usa o número do celular para gerar digits base determinísticos
- */
-function gerarCpfFromCelular(celular) {
-    var _a;
-    // Pega os primeiros 9 dígitos do celular (ou usa seed se celular curto)
-    const celularDigits = celular.replace(/\D/g, '').split('').map(Number);
-    // Usa os últimos 9 dígitos do celular (ou padding se necessário)
-    const baseDigits = [];
-    const startIdx = Math.max(0, celularDigits.length - 9);
-    for (let i = 0; i < 9; i++) {
-        baseDigits.push((_a = celularDigits[startIdx + i]) !== null && _a !== void 0 ? _a : (i + 1));
-    }
-    const [dig1, dig2] = calcularDigitosCpf(baseDigits);
-    const cpf = [...baseDigits, dig1, dig2].join('');
-    console.log(`[CPF] Gerado CPF válido: ${cpf} (celular=${celular})`);
-    return cpf;
-}
-/**
- * Criar pagamento PIX
- * IMPORTANTE: Expira em 10 minutos para liberar slot para outras pessoas
- */
-async function createPixPayment(customerId, amount, description, pixKey) {
-    // Calcular data de expiração (10 minutos)
-    // Após 10min sem pagamento, o slot é liberado para outra pessoa agendar
-    const PIX_EXPIRATION_MINUTES = 10;
-    const expiresAt = new Date(Date.now() + PIX_EXPIRATION_MINUTES * 60 * 1000);
-    const dueDate = expiresAt.toISOString().split('T')[0];
-    // Criar pagamento PIX
-    // Se pixKey foi passada, usar como chave específica (precisa estar cadastrada na conta Asaas)
-    const paymentData = {
-        customer: customerId,
-        billingType: 'PIX',
-        value: amount,
-        dueDate: dueDate,
-        description: description
-    };
-    // Se tem chave PIX configurada pelo admin, passar como endereço da chave PIX
-    // Caso contrário, Asaas usa a chave padrão da conta
-    if (pixKey && pixKey.trim().length > 0) {
-        paymentData.pix = {
-            addressKey: pixKey.trim()
-        };
-    }
-    console.log(`Criando PIX: amount=${amount}, customer=${customerId}, pixKey=${pixKey ? 'sim' : 'não'}`);
-    const paymentResponse = await axios_1.default.post(`${ASAAS_BASE_URL}/payments`, paymentData, {
-        headers: asaasHeaders
-    });
-    const payment = paymentResponse.data;
-    console.log(`PIX criado: ${payment.id}, status=${payment.status}`);
-    // Obter QR Code PIX
-    const qrResponse = await axios_1.default.get(`${ASAAS_BASE_URL}/payments/${payment.id}/pixQrCode`, {
-        headers: asaasHeaders
-    });
-    return {
-        paymentId: payment.id,
-        qrCode: qrResponse.data.encodedImage || '',
-        payload: qrResponse.data.payload || '',
-        expiresAt: expiresAt.toISOString()
-    };
-}
-/**
- * Verificar status do pagamento
- */
-async function checkPaymentStatus(paymentId) {
-    const response = await axios_1.default.get(`${ASAAS_BASE_URL}/payments/${paymentId}`, {
-        headers: asaasHeaders
-    });
-    const payment = response.data;
-    // Mapear status Asaas para status internos
-    switch (payment.status) {
-        case 'RECEIVED':
-        case 'CONFIRMED':
-            return 'paid';
-        case 'OVERDUE':
-            return 'expired';
-        case 'CANCELLED':
-            return 'cancelled';
-        case 'PENDING':
-        default:
-            return 'pending';
-    }
-}
+// Types Asaas vêm de ./asaas.ts
+// ============================================
+// FUNÇÕES ASAAS MULTI-TENANT (em ./asaas.ts)
+// ============================================
+//   - getAsaasConfigForTenant(tenantId)
+//   - testAsaasConnection(tenantId)
+//   - getOrCreateAsaasCustomer(tenantId, userData)
+//   - createPixPaymentMulti(tenantId, customerId, amount, description)
+//   - checkPaymentStatusMulti(tenantId, paymentId)
+//   - cancelPixPaymentMulti(tenantId, paymentId)
 // ============================================
 // FUNÇÕES FIREBASE CLOUD
 // ============================================
 /**
- * Criar pagamento PIX para um agendamento
+ * Criar pagamento PIX para um agendamento (multi-tenant)
  */
 exports.createPixPaymentForAppointment = functions.https.onCall(async (data, context) => {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
@@ -305,18 +141,19 @@ exports.createPixPaymentForAppointment = functions.https.onCall(async (data, con
     // Arredondar para 2 casas decimais
     pixAmount = Math.round(pixAmount * 100) / 100;
     console.log(`[PIX] Calculando: totalPrice=${totalPrice}, percentage=${pixConfig.guaranteePercentage}%, initialPixAmount=${totalPrice * (pixConfig.guaranteePercentage / 100)}, minAmount=${minAmount}, finalPixAmount=${pixAmount}`);
+    // Determinar tenantId (multi-tenant)
+    const tenantId = appointment.tenantId || 'brilhocar';
     try {
-        // Criar ou buscar cliente no Asaas
-        const customerId = await getOrCreateAsaasCustomer({
+        // Criar ou buscar cliente no Asaas (multi-tenant)
+        const customerId = await (0, asaas_1.getOrCreateAsaasCustomer)(tenantId, {
             name: appointment.userName || userData.name || 'Cliente',
             celular: appointment.userCelular || userData.celular || '',
             email: userData.email || undefined,
             cpfCnpj: userData.cpfCnpj || undefined
         });
-        // Criar pagamento PIX
-        // Passar pixKey configurada pelo admin (se houver) para o Asaas
+        // Criar pagamento PIX (multi-tenant)
         const description = `Sinal agendamento #${appointment.os || appointmentId}`;
-        const pixResult = await createPixPayment(customerId, pixAmount, description, pixConfig.pixKey);
+        const pixResult = await (0, asaas_1.createPixPayment)(tenantId, customerId, pixAmount, description);
         // Atualizar agendamento no Firestore
         await appointmentRef.update({
             pixPaymentId: pixResult.paymentId,
@@ -343,7 +180,7 @@ exports.createPixPaymentForAppointment = functions.https.onCall(async (data, con
             status: (_d = error === null || error === void 0 ? void 0 : error.response) === null || _d === void 0 ? void 0 : _d.status,
             data: (_e = error === null || error === void 0 ? void 0 : error.response) === null || _e === void 0 ? void 0 : _e.data,
             errors: (_g = (_f = error === null || error === void 0 ? void 0 : error.response) === null || _f === void 0 ? void 0 : _f.data) === null || _g === void 0 ? void 0 : _g.errors,
-            ASAAS_API_KEY_LENGTH: ASAAS_API_KEY.length
+            tenantId
         });
         // Extrair mensagem de erro detalhada do Asaas
         const asaasErrors = (_j = (_h = error === null || error === void 0 ? void 0 : error.response) === null || _h === void 0 ? void 0 : _h.data) === null || _j === void 0 ? void 0 : _j.errors;
@@ -373,9 +210,17 @@ exports.checkPixPaymentStatus = functions.https.onCall(async (data, context) => 
     const { paymentId, appointmentId } = data;
     try {
         let status;
+        let tenantId = 'brilhocar';
         if (paymentId) {
-            // Buscar pelo paymentId
-            status = await checkPaymentStatus(paymentId);
+            // Buscar pelo paymentId (precisa do tenantId do appointment)
+            const appointmentsSnap = await db.collection('appointments')
+                .where('pixPaymentId', '==', paymentId)
+                .limit(1)
+                .get();
+            if (!appointmentsSnap.empty) {
+                tenantId = appointmentsSnap.docs[0].data().tenantId || 'brilhocar';
+            }
+            status = await (0, asaas_1.checkPaymentStatus)(tenantId, paymentId);
         }
         else if (appointmentId) {
             // Buscar pelo appointmentId
@@ -391,7 +236,8 @@ exports.checkPixPaymentStatus = functions.https.onCall(async (data, context) => 
             if (!appointment.pixPaymentId) {
                 return { status: 'no_payment' };
             }
-            status = await checkPaymentStatus(appointment.pixPaymentId);
+            tenantId = appointment.tenantId || 'brilhocar';
+            status = await (0, asaas_1.checkPaymentStatus)(tenantId, appointment.pixPaymentId);
         }
         else {
             throw new functions.https.HttpsError('invalid-argument', 'paymentId ou appointmentId é obrigatório');
@@ -498,17 +344,21 @@ exports.cancelPixPayment = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('invalid-argument', 'paymentId é obrigatório');
     }
     try {
-        // Cancelar no Asaas
-        await axios_1.default.post(`${ASAAS_BASE_URL}/payments/${paymentId}/cancel`, {}, {
-            headers: asaasHeaders
-        });
-        // Atualizar status no Firestore
+        // Buscar tenantId do agendamento
         const appointmentsSnapshot = await db.collection('appointments')
             .where('pixPaymentId', '==', paymentId)
             .limit(1)
             .get();
+        let tenantId = 'brilhocar';
+        let appointmentRef = null;
         if (!appointmentsSnapshot.empty) {
-            const appointmentRef = appointmentsSnapshot.docs[0].ref;
+            appointmentRef = appointmentsSnapshot.docs[0].ref;
+            tenantId = appointmentsSnapshot.docs[0].data().tenantId || 'brilhocar';
+        }
+        // Cancelar no Asaas (multi-tenant)
+        await (0, asaas_1.cancelPixPayment)(tenantId, paymentId);
+        // Atualizar status no Firestore
+        if (appointmentRef) {
             await appointmentRef.update({
                 pixStatus: 'cancelled',
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -609,10 +459,17 @@ exports.bootstrapAdmin = functions.https.onCall(async (_data, context) => {
  * Alternativa para casos onde httpsCallable tem problemas de CORS
  * Uso: POST /bootstrapAdminHttp com header Authorization: Bearer <firebase-id-token>
  */
-const corsHandler = cors({
-    origin: true, // Aceita qualquer origem (em produção, especifique os domínios)
-    credentials: false
-});
+const corsHandler = (req, res, next) => {
+    // CORS manual - aceita qualquer origem
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    next();
+};
 exports.bootstrapAdminHttp = functions.https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
         // Validar método
@@ -1042,6 +899,9 @@ exports.initializeDefaultTenant = functions.https.onCall(async (_data, context) 
         accentColor: '#D4AF37',
         backgroundColor: '#0a0a0f',
         surfaceColor: '#151515',
+        backgroundColorLight: '#FFFFFF',
+        surfaceColorLight: '#F5F5F5',
+        themeMode: 'auto',
         logoUrl: '',
         contact: {
             email: 'contato@brilhocar.com',
@@ -1053,15 +913,15 @@ exports.initializeDefaultTenant = functions.https.onCall(async (_data, context) 
             city: 'Mauá'
         },
         pix: {
-            AsaasAPIKey: '',
             walletId: '',
-            environment: 'production'
+            pixKey: '',
+            environment: process.env.ASAAS_ENVIRONMENT || 'sandbox'
         },
         firebaseConfig: {
             apiKey: '',
             authDomain: '',
             projectId: 'brilhocar-estetica-9f14b',
-            storageBucket: '',
+            storageBucket: 'brilhocar-estetica-9f14b.firebasestorage.app',
             messagingSenderId: '',
             appId: ''
         },
@@ -1070,6 +930,17 @@ exports.initializeDefaultTenant = functions.https.onCall(async (_data, context) 
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
+    // Criptografar Asaas API key se configurada no env
+    const asaasKeyFromEnv = process.env.ASAAS_API_KEY;
+    if (asaasKeyFromEnv && asaasKeyFromEnv.length > 0) {
+        try {
+            defaultTenant.pix.AsaasAPIKey = (0, crypto_1.encrypt)(asaasKeyFromEnv, tenantId);
+            console.log(`[initializeDefaultTenant] Asaas key criptografada do env`);
+        }
+        catch (err) {
+            console.warn(`[initializeDefaultTenant] Erro ao criptografar Asaas key:`, err.message);
+        }
+    }
     await db.collection('tenants').doc(tenantId).set(defaultTenant);
     console.log(`[initializeDefaultTenant] Tenant padrão '${tenantId}' criado`);
     return {
@@ -1128,7 +999,7 @@ exports.uploadGalleryImage = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('invalid-argument', 'imageData e fileName são obrigatórios');
     }
     try {
-        const bucket = admin.storage().bucket();
+        const bucket = getStorageBucket();
         const timestamp = Date.now();
         const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
         const filePath = `gallery/${timestamp}-${safeName}`;
@@ -1163,4 +1034,106 @@ exports.uploadGalleryImage = functions.https.onCall(async (data, context) => {
         throw new functions.https.HttpsError('internal', error.message || 'Erro ao fazer upload');
     }
 });
+// ============================================
+// FUNÇÕES DE SEGURANÇA E MULTI-TENANT
+// ============================================
+/**
+ * Salvar configuração do tenant com criptografia automática de campos sensíveis
+ * Campos criptografados: asaas.AsaasAPIKey, firebase.apiKey
+ */
+exports.saveTenantConfig = functions.https.onCall(async (data, context) => {
+    var _a;
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+    }
+    // Verificar se é admin
+    const adminDoc = await db.collection('admins').doc(context.auth.uid).get();
+    if (!adminDoc.exists) {
+        throw new functions.https.HttpsError('permission-denied', 'Apenas admin');
+    }
+    const { tenantId, config } = data;
+    if (!tenantId || !config) {
+        throw new functions.https.HttpsError('invalid-argument', 'tenantId e config obrigatórios');
+    }
+    try {
+        // Criptografar campos sensíveis
+        const encryptedConfig = JSON.parse(JSON.stringify(config));
+        if (((_a = encryptedConfig.asaas) === null || _a === void 0 ? void 0 : _a.AsaasAPIKey) && encryptedConfig.asaas.AsaasAPIKey.length > 0) {
+            // Não criptografar se já estiver criptografado (idempotência)
+            if (!isAlreadyEncrypted(encryptedConfig.asaas.AsaasAPIKey)) {
+                encryptedConfig.asaas.AsaasAPIKey = (0, crypto_1.encrypt)(encryptedConfig.asaas.AsaasAPIKey, tenantId);
+                console.log(`[saveTenantConfig] API key Asaas criptografada para tenant ${tenantId}`);
+            }
+        }
+        // Limpar plaintext legado se existir
+        if (encryptedConfig.asaas) {
+            delete encryptedConfig.asaas.apiKey;
+            delete encryptedConfig.asaas.apiKeyPlaintext;
+        }
+        // Salvar no Firestore
+        await db.collection('tenants').doc(tenantId).set(encryptedConfig, { merge: true });
+        console.log(`[saveTenantConfig] Tenant ${tenantId} atualizado`);
+        // Retornar config sem expor secrets
+        return {
+            success: true,
+            config: removeSecrets(encryptedConfig),
+        };
+    }
+    catch (err) {
+        console.error('[saveTenantConfig] Erro:', err);
+        throw new functions.https.HttpsError('internal', err.message || 'Erro ao salvar');
+    }
+});
+/**
+ * Testar conexão Asaas para o tenant atual (sem expor a key)
+ */
+exports.testAsaasConnectionFn = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+    }
+    const adminDoc = await db.collection('admins').doc(context.auth.uid).get();
+    if (!adminDoc.exists) {
+        throw new functions.https.HttpsError('permission-denied', 'Apenas admin');
+    }
+    const tenantId = (data === null || data === void 0 ? void 0 : data.tenantId) || 'brilhocar';
+    try {
+        const result = await (0, asaas_1.testAsaasConnection)(tenantId);
+        return result;
+    }
+    catch (err) {
+        console.error('[testAsaasConnection] Erro:', err);
+        throw new functions.https.HttpsError('internal', err.message || 'Erro ao testar conexão');
+    }
+});
+// ============================================
+// HELPERS LOCAIS
+// ============================================
+/**
+ * Detecta se uma string já está criptografada (heurística simples)
+ */
+function isAlreadyEncrypted(value) {
+    if (!value)
+        return false;
+    // String criptografada é base64 com tamanho mínimo ~40 chars
+    if (value.length < 40)
+        return false;
+    // Verifica se parece base64 válido
+    return /^[A-Za-z0-9+/=]+$/.test(value);
+}
+/**
+ * Remove campos sensíveis do objeto antes de retornar para o frontend
+ */
+function removeSecrets(config) {
+    var _a;
+    const cleaned = JSON.parse(JSON.stringify(config));
+    if (cleaned.asaas) {
+        delete cleaned.asaas.AsaasAPIKey;
+        delete cleaned.asaas.apiKey;
+        delete cleaned.asaas.apiKeyPlaintext;
+    }
+    if ((_a = cleaned.firebase) === null || _a === void 0 ? void 0 : _a.apiKey) {
+        delete cleaned.firebase.apiKey;
+    }
+    return cleaned;
+}
 //# sourceMappingURL=index.js.map

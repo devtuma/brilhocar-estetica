@@ -3,9 +3,88 @@
 @tailwind utilities;
 
 @layer base {
+  /* Tema dark (padrão) - variáveis CSS injetadas via TenantContext */
+  :root,
+  :root[data-theme="dark"] {
+    --color-primary: #00e676;
+    --color-primary-hover: #00c853;
+    --color-on-primary: #000000;
+    --color-accent: #D4AF37;
+    --color-background: #0a0a0f;
+    --color-surface: #151515;
+    --color-text: #FFFFFF;
+    --color-text-muted: #999999;
+    --color-border: #333333;
+  }
+
+  /* Tema light */
+  :root[data-theme="light"] {
+    --color-primary: #00c853;
+    --color-primary-hover: #00a843;
+    --color-on-primary: #FFFFFF;
+    --color-accent: #B8941F;
+    --color-background: #FFFFFF;
+    --color-surface: #F5F5F5;
+    --color-text: #0a0a0f;
+    --color-text-muted: #666666;
+    --color-border: #E5E5E5;
+  }
+
   body {
-    background-color: #0b0b0f;
-    color: #ffffff;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Classes utilitárias que usam CSS variables */
+  .bg-themed {
+    background-color: var(--color-background);
+  }
+
+  .text-themed {
+    color: var(--color-text);
+  }
+
+  .surface-themed {
+    background-color: var(--color-surface);
+  }
+
+  .border-themed {
+    border-color: var(--color-border);
+  }
+
+  /* Auto-contraste para textos que ficam em fundos de cor primária */
+  .on-primary {
+    color: var(--color-on-primary);
+  }
+
+  /* Ajustes específicos para o tema light */
+  :root[data-theme="light"] .text-gray-400 {
+    color: #4b5563;
+  }
+
+  :root[data-theme="light"] .text-gray-500 {
+    color: #6b7280;
+  }
+
+  :root[data-theme="light"] .bg-gray-900 {
+    background-color: #f9fafb;
+  }
+
+  :root[data-theme="light"] .bg-gray-800 {
+    background-color: #f3f4f6;
+  }
+
+  :root[data-theme="light"] .bg-gray-700 {
+    background-color: #e5e7eb;
+  }
+
+  :root[data-theme="light"] .border-gray-700 {
+    border-color: #d1d5db;
+  }
+
+  :root[data-theme="light"] .border-gray-800 {
+    border-color: #e5e7eb;
   }
 }
 
