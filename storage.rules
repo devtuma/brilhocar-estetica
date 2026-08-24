@@ -9,6 +9,12 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null;
     }
+    match /gallery/{allPaths=**} {
+      allow read: if true;
+      // Upload via Cloud Function (que valida admin)
+      // Mas permite leitura pública
+      allow write: if request.auth != null;
+    }
     match /{allPaths=**} {
       allow read, write: if false;
     }

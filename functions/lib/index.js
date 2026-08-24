@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTenantConfig = exports.initializeDefaultTenant = exports.addTimelineEntry = exports.findAppointmentByOS = exports.createAppointmentWithSlotLock = exports.simulatePaymentConfirmed = exports.checkExpiredPayments = exports.seedServices = exports.bootstrapAdminHttp = exports.bootstrapAdmin = exports.saveTransaction = exports.cancelPixPayment = exports.asaasWebhook = exports.checkPixPaymentStatus = exports.createPixPaymentForAppointment = void 0;
+exports.uploadGalleryImage = exports.getTenantConfig = exports.initializeDefaultTenant = exports.addTimelineEntry = exports.findAppointmentByOS = exports.createAppointmentWithSlotLock = exports.simulatePaymentConfirmed = exports.checkExpiredPayments = exports.seedServices = exports.bootstrapAdminHttp = exports.bootstrapAdmin = exports.saveTransaction = exports.cancelPixPayment = exports.asaasWebhook = exports.checkPixPaymentStatus = exports.createPixPaymentForAppointment = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const axios_1 = __importDefault(require("axios"));
@@ -1109,6 +1109,58 @@ exports.getTenantConfig = functions.https.onCall(async (data) => {
     catch (error) {
         console.error('[getTenantConfig] Erro:', error);
         throw new functions.https.HttpsError('internal', error.message || 'Erro ao buscar tenant');
+    }
+});
+/**
+ * Upload de imagem para a galeria (resolve problema de CORS)
+ * Recebe base64 da imagem e salva no Storage com permissão pública
+ */
+exports.uploadGalleryImage = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+    }
+    const adminDoc = await db.collection('admins').doc(context.auth.uid).get();
+    if (!adminDoc.exists) {
+        throw new functions.https.HttpsError('permission-denied', 'Apenas admin pode fazer upload');
+    }
+    const { imageData, fileName } = data;
+    if (!imageData || !fileName) {
+        throw new functions.https.HttpsError('invalid-argument', 'imageData e fileName são obrigatórios');
+    }
+    try {
+        const bucket = admin.storage().bucket();
+        const timestamp = Date.now();
+        const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filePath = `gallery/${timestamp}-${safeName}`;
+        const file = bucket.file(filePath);
+        // Converter base64 para buffer
+        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        // Upload
+        await file.save(buffer, {
+            metadata: {
+                contentType: 'image/jpeg',
+                metadata: {
+                    uploadedBy: context.auth.uid,
+                    uploadedAt: new Date().toISOString(),
+                }
+            },
+            resumable: false,
+        });
+        // Tornar público
+        await file.makePublic();
+        // Obter URL pública
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+        console.log(`[uploadGalleryImage] Upload concluído: ${publicUrl}`);
+        return {
+            success: true,
+            url: publicUrl,
+            filePath,
+        };
+    }
+    catch (error) {
+        console.error('[uploadGalleryImage] Erro:', error);
+        throw new functions.https.HttpsError('internal', error.message || 'Erro ao fazer upload');
     }
 });
 //# sourceMappingURL=index.js.map

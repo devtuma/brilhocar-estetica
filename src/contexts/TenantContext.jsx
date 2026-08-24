@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 // Tenant padrão (BrilhoCar) - usado quando não há configuração de tenant
@@ -90,9 +90,22 @@ export function TenantProvider({ children }) {
           // Aplicar tema CSS
           applyTheme(tenantData);
         } else {
-          console.log(`Tenant "${tenantId}" não encontrado, usando padrão (BrilhoCar)`);
-          setTenant(DEFAULT_TENANT);
-          applyTheme(DEFAULT_TENANT);
+          // Tenant não existe - verificar se é o padrão (brilhocar)
+          if (tenantId === 'brilhocar') {
+            // Criar tenant padrão automaticamente
+            await setDoc(doc(db, 'tenants', 'brilhocar'), {
+              ...DEFAULT_TENANT,
+              createdAt: new Date().toISOString(),
+              autoCreated: true,
+            });
+            console.log('Tenant padrão brilhocar criado automaticamente');
+            setTenant(DEFAULT_TENANT);
+            applyTheme(DEFAULT_TENANT);
+          } else {
+            console.log(`Tenant "${tenantId}" não encontrado, usando padrão (BrilhoCar)`);
+            setTenant(DEFAULT_TENANT);
+            applyTheme(DEFAULT_TENANT);
+          }
         }
       } catch (err) {
         console.warn('Erro ao carregar tenant, usando padrão:', err);

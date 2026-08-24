@@ -109,6 +109,24 @@ service cloud.firestore {
       allow write: if false; // via Functions ou admin
     }
 
+    // ====== GALLERY (Antes/Depois) ======
+    match /gallery/{galleryId} {
+      allow read: if true; // público pode ver as fotos
+      allow write: if request.auth != null && (
+        ('admin' in request.auth.token) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // ====== TENANTS (white label) ======
+    match /tenants/{tenantId} {
+      allow read: if true; // configurações públicas (cores, logos)
+      allow write: if request.auth != null && (
+        ('admin' in request.auth.token) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
     // ====== IMAGES ======
     match /images/{imageId} {
       allow read: if true;

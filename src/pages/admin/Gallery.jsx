@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../../firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '../../firebase';
 import { Upload, Trash2, Edit3, X, ImageIcon, Loader2, CheckCircle, AlertCircle, Save } from 'lucide-react';
 
 export default function Gallery() {
@@ -87,13 +87,30 @@ export default function Gallery() {
     setFormData(prev => ({ ...prev, [field]: file }));
   };
 
-  // Upload para Firebase Storage
+  // Upload para Firebase Storage via Cloud Function (evita CORS)
   const uploadImage = async (file) => {
-    const timestamp = Date.now();
-    const filename = `gallery/${timestamp}-${file.name}`;
-    const storageRef = ref(storage, filename);
-    await uploadBytes(storageRef, file);
-    return await getDownloadURL(storageRef);
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result;
+          const uploadFn = httpsCallable(functions, 'uploadGalleryImage');
+          const result = await uploadFn({
+            imageData: base64Data,
+            fileName: file.name,
+          });
+          if (result.data.success) {
+            resolve(result.data.url);
+          } else {
+            reject(new Error(result.data.error || 'Erro no upload'));
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleSave = async (e) => {
