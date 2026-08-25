@@ -165,13 +165,17 @@ export function TenantProvider({ children }) {
     const accentColor = tenantData.accentColor || DEFAULT_TENANT.accentColor;
     const themeMode = tenantData.themeMode || 'auto';
 
-    // Determinar tema efetivo
-    let theme;
+    // Determinar tema do tenant (pode ser sobrescrito pelo usuário)
+    let tenantTheme;
     if (themeMode === 'auto') {
-      theme = autoSelectTheme(primaryColor);
+      tenantTheme = autoSelectTheme(primaryColor);
     } else {
-      theme = themeMode;
+      tenantTheme = themeMode;
     }
+
+    // Se o usuário escolheu tema manualmente, usar o dele
+    const userOverride = localStorage.getItem('user-theme-mode');
+    const theme = (userOverride && userOverride !== 'auto') ? userOverride : tenantTheme;
 
     setEffectiveTheme(theme);
 

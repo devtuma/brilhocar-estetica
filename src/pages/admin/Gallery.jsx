@@ -426,13 +426,20 @@ export default function Gallery() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-400 mb-1">Ordem</label>
+                  <label className="block text-sm font-semibold text-gray-400 mb-1">
+                    Ordem de Exibição
+                    <span className="ml-1 text-xs text-gray-500">(opcional)</span>
+                  </label>
                   <input
                     type="number"
                     value={formData.order}
                     onChange={(e) => setFormData(prev => ({ ...prev, order: e.target.value }))}
                     className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary"
+                    placeholder="0"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    💡 Menor número aparece primeiro. 0 = ordem padrão.
+                  </p>
                 </div>
                 <div className="flex items-end">
                   <label className="flex items-center gap-2 cursor-pointer">

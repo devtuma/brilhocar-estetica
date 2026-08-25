@@ -11,6 +11,7 @@ import Checkin from './pages/Checkin';
 import Admin from './pages/Admin';
 import AdminAccess from './components/AdminAccess';
 import Footer from './components/Footer';
+import ThemeToggle from './components/ThemeToggle';
 import AdminSiteTexts from './pages/admin/SiteTexts';
 import AdminPromotions from './pages/admin/Promotions';
 import AdminPixConfig from './pages/admin/PixConfig';
@@ -80,6 +81,7 @@ function ClientLayout({ children }) {
           <Link to="/" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Início</Link>
           <Link to="/booking" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/booking') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Agendar</Link>
           <Link to="/track" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/track') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Acompanhar</Link>
+          <ThemeToggle size="sm" />
           {user && (
             <div className="ml-4 flex items-center gap-3 px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-lg">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
@@ -112,6 +114,9 @@ function ClientLayout({ children }) {
           <Search size={20} />
           <span className="text-[10px] font-bold">Acompanhar</span>
         </Link>
+        <div className="flex flex-col items-center gap-1">
+          <ThemeToggle size="sm" />
+        </div>
         {user && (
           <div className="flex flex-col items-center gap-1">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
@@ -159,6 +164,7 @@ function AdminLayout({ children }) {
         <nav className="hidden md:flex gap-3 items-center">
           <Link to="/admin" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/admin') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Painel</Link>
           <Link to="/checkin" className={`border border-gray-800 transition-colors text-sm font-semibold px-4 py-1.5 rounded-lg ${isActive('/checkin') ? 'bg-gray-800 text-primary' : 'bg-[#0b0b0f] hover:bg-gray-800'}`}>Scanner QR</Link>
+          <ThemeToggle size="sm" />
           {user && (
             <button onClick={handleLogout} className="text-gray-400 hover:text-red-500 transition-colors ml-4 flex items-center gap-2 text-sm font-semibold">
               <LogOut size={20}/>
