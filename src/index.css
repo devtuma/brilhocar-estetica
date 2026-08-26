@@ -5,7 +5,6 @@
 @layer base {
   /* ============================================
      TEMA DARK (padrão BrilhoCar)
-     Mantém o visual atual
      ============================================ */
   :root,
   :root[data-theme="dark"] {
@@ -21,13 +20,13 @@
     --color-text-soft: #d1d5db;
     --color-border: #2a2a2e;
     --color-border-strong: #3a3a3e;
-    --color-shadow: rgba(0, 0, 0, 0.5);
-    --color-shadow-soft: rgba(0, 0, 0, 0.3);
+    --color-card: #151515;
+    --color-input: #0b0b0f;
   }
 
   /* ============================================
      TEMA LIGHT - padrão Apple
-     Branco puro, cinzas suaves, sombras delicadas
+     Branco puro, cinzas suaves
      ============================================ */
   :root[data-theme="light"] {
     --color-primary: #007AFF;
@@ -35,207 +34,268 @@
     --color-on-primary: #FFFFFF;
     --color-accent: #D4AF37;
     --color-background: #FFFFFF;
-    --color-surface: #F2F2F7;
+    --color-surface: #F5F5F7;
     --color-surface-2: #FFFFFF;
     --color-text: #1d1d1f;
     --color-text-muted: #6e6e73;
     --color-text-soft: #424245;
     --color-border: #d2d2d7;
     --color-border-strong: #8e8e93;
-    --color-shadow: rgba(0, 0, 0, 0.08);
-    --color-shadow-soft: rgba(0, 0, 0, 0.04);
+    --color-card: #FFFFFF;
+    --color-input: #FFFFFF;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-text);
     transition: background-color 0.3s ease, color 0.3s ease;
-    font-feature-settings: "ss01", "cv01";
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Classes utilitárias com CSS variables */
-  .bg-themed { background-color: var(--color-background); }
-  .text-themed { color: var(--color-text); }
-  .surface-themed { background-color: var(--color-surface); }
-  .border-themed { border-color: var(--color-border); }
-  .on-primary { color: var(--color-on-primary); }
+  .bg-themed { background-color: var(--color-background) !important; }
+  .text-themed { color: var(--color-text) !important; }
+  .surface-themed { background-color: var(--color-surface) !important; }
+  .border-themed { border-color: var(--color-border) !important; }
+  .on-primary { color: var(--color-on-primary) !important; }
 }
 
 /* ============================================
-   OVERRIDES ESPECÍFICOS DO LIGHT MODE
-   Estilo Apple: limpo, arejado, com sombras
+   LIGHT MODE - ESTILO APPLE
+   Override agressivo com !important
    ============================================ */
 :root[data-theme="light"] {
-  /* Backgrounds */
-  --tw-bg-opacity: 1;
+  /* Backgrounds principais - tudo branco/Apple */
+  background-color: #FFFFFF !important;
 }
 
-:root[data-theme="light"] .bg-\[\#0b0b0f\] {
-  background-color: #FFFFFF;
+:root[data-theme="light"] body {
+  background-color: #FFFFFF !important;
+  color: #1d1d1f !important;
 }
 
-:root[data-theme="light"] .bg-gray-900 {
-  background-color: #FFFFFF;
+/* Backgrounds escuros viram branco/Apple */
+:root[data-theme="light"] .bg-\[\#0b0b0f\],
+:root[data-theme="light"] .bg-\[\#050505\],
+:root[data-theme="light"] .bg-\[\#08080b\],
+:root[data-theme="light"] .bg-\[\#0a0a0f\],
+:root[data-theme="light"] .bg-\[\#0b0b0f\],
+:root[data-theme="light"] .bg-\[\#151515\],
+:root[data-theme="light"] .bg-gray-900,
+:root[data-theme="light"] .bg-gray-900\/50 {
+  background-color: #FFFFFF !important;
 }
 
-:root[data-theme="light"] .bg-gray-800 {
-  background-color: #F2F2F7;
+:root[data-theme="light"] .bg-black {
+  background-color: #FFFFFF !important;
 }
 
-:root[data-theme="light"] .bg-gray-700 {
-  background-color: #E5E5EA;
+:root[data-theme="light"] .bg-gray-800,
+:root[data-theme="light"] .bg-gray-800\/50,
+:root[data-theme="light"] .bg-gray-800\/30 {
+  background-color: #F5F5F7 !important;
 }
 
+:root[data-theme="light"] .bg-gray-700,
 :root[data-theme="light"] .bg-gray-700\/50 {
-  background-color: rgba(229, 229, 234, 0.5);
+  background-color: #E5E5EA !important;
 }
 
-:root[data-theme="light"] .bg-black\/30 {
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-:root[data-theme="light"] .bg-black\/50 {
-  background-color: rgba(0, 0, 0, 0.5);
+:root[data-theme="light"] .bg-black\/30,
+:root[data-theme="light"] .bg-black\/40 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
 }
 
 :root[data-theme="light"] .bg-black\/80 {
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
-/* Textos */
+:root[data-theme="light"] .bg-surface {
+  background-color: #F5F5F7 !important;
+}
+
+/* Textos claros viram escuros */
 :root[data-theme="light"] .text-white {
-  color: #1d1d1f;
+  color: #1d1d1f !important;
 }
 
 :root[data-theme="light"] .text-gray-400 {
-  color: #6e6e73;
+  color: #6e6e73 !important;
 }
 
 :root[data-theme="light"] .text-gray-500 {
-  color: #86868b;
+  color: #86868b !important;
 }
 
 :root[data-theme="light"] .text-gray-300 {
-  color: #424245;
+  color: #424245 !important;
 }
 
-/* Bordas */
-:root[data-theme="light"] .border-gray-700 {
-  border-color: #d2d2d7;
+:root[data-theme="light"] .text-gray-200 {
+  color: #3a3a3c !important;
 }
 
-:root[data-theme="light"] .border-gray-800 {
-  border-color: #e5e5ea;
+/* Bordas escuras viram suaves */
+:root[data-theme="light"] .border-gray-700,
+:root[data-theme="light"] .border-gray-700\/50 {
+  border-color: #d2d2d7 !important;
+}
+
+:root[data-theme="light"] .border-gray-800,
+:root[data-theme="light"] .border-gray-800\/50 {
+  border-color: #e5e5ea !important;
 }
 
 :root[data-theme="light"] .border-gray-600 {
-  border-color: #c7c7cc;
+  border-color: #c7c7cc !important;
 }
 
-/* Cards do tema dark viram cards brancos com sombra no light */
+:root[data-theme="light"] .border-gray-500 {
+  border-color: #a1a1a6 !important;
+}
+
+/* Botões secundários claros viram Apple style */
+:root[data-theme="light"] button.bg-gray-800,
+:root[data-theme="light"] .bg-gray-800:not(input):not(textarea):not(select) {
+  background-color: #F5F5F7 !important;
+  color: #1d1d1f !important;
+}
+
+:root[data-theme="light"] button.bg-gray-800:hover,
+:root[data-theme="light"] .hover\:bg-gray-800:hover {
+  background-color: #E5E5EA !important;
+}
+
+:root[data-theme="light"] button.bg-gray-700 {
+  background-color: #E5E5EA !important;
+  color: #1d1d1f !important;
+}
+
+:root[data-theme="light"] button.bg-gray-700:hover {
+  background-color: #d2d2d7 !important;
+}
+
+/* Header e nav com blur translúcido */
+:root[data-theme="light"] header.bg-surface,
+:root[data-theme="light"] nav.bg-surface {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+:root[data-theme="light"] footer.bg-surface,
+:root[data-theme="light"] footer.bg-background {
+  background-color: #F5F5F7 !important;
+  border-top: 1px solid #d2d2d7 !important;
+}
+
+/* Inputs limpos */
+:root[data-theme="light"] input,
+:root[data-theme="light"] select,
+:root[data-theme="light"] textarea {
+  background-color: #FFFFFF !important;
+  border-color: #d2d2d7 !important;
+  color: #1d1d1f !important;
+}
+
+:root[data-theme="light"] input::placeholder,
+:root[data-theme="light"] textarea::placeholder {
+  color: #86868b !important;
+}
+
+:root[data-theme="light"] input:focus,
+:root[data-theme="light"] select:focus,
+:root[data-theme="light"] textarea:focus {
+  border-color: #007AFF !important;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15) !important;
+}
+
+/* Sombras Apple - muito mais suaves */
 :root[data-theme="light"] .shadow-xl {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
-              0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04),
+              0 4px 12px rgba(0, 0, 0, 0.06) !important;
 }
 
 :root[data-theme="light"] .shadow-2xl {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04),
-              0 16px 32px rgba(0, 0, 0, 0.08);
+              0 16px 32px rgba(0, 0, 0, 0.08) !important;
 }
 
 :root[data-theme="light"] .shadow-lg {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04),
-              0 8px 16px rgba(0, 0, 0, 0.06);
+              0 8px 16px rgba(0, 0, 0, 0.06) !important;
 }
 
 :root[data-theme="light"] .shadow-md {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04),
-              0 4px 8px rgba(0, 0, 0, 0.06);
+              0 4px 8px rgba(0, 0, 0, 0.06) !important;
 }
 
-/* Header com backdrop blur estilo Apple */
-:root[data-theme="light"] header.bg-surface {
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom-color: rgba(0, 0, 0, 0.05);
+:root[data-theme="light"] .shadow {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04),
+              0 2px 4px rgba(0, 0, 0, 0.06) !important;
 }
 
-/* Bottom nav mobile */
-:root[data-theme="light"] nav.bg-surface {
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-top-color: rgba(0, 0, 0, 0.05);
+/* Cores de status - Apple palette */
+:root[data-theme="light"] .text-green-400,
+:root[data-theme="light"] .text-green-500 {
+  color: #34c759 !important;
 }
 
-/* Footer */
-:root[data-theme="light"] footer.bg-surface {
-  background-color: #F2F2F7;
-  border-top: 1px solid #d2d2d7;
+:root[data-theme="light"] .text-red-400,
+:root[data-theme="light"] .text-red-500 {
+  color: #ff3b30 !important;
 }
 
-/* Inputs mais limpos */
-:root[data-theme="light"] input,
-:root[data-theme="light"] select,
-:root[data-theme="light"] textarea {
-  background-color: #FFFFFF;
-  border-color: #d2d2d7;
-  color: #1d1d1f;
+:root[data-theme="light"] .text-yellow-400,
+:root[data-theme="light"] .text-yellow-500 {
+  color: #ff9500 !important;
 }
 
-:root[data-theme="light"] input::placeholder {
-  color: #86868b;
+:root[data-theme="light"] .text-blue-400,
+:root[data-theme="light"] .text-blue-500 {
+  color: #007AFF !important;
 }
 
-/* Botões secondary ficam mais sutis */
-:root[data-theme="light"] button.bg-gray-800 {
-  background-color: #F2F2F7;
-  color: #1d1d1f;
-}
-
-:root[data-theme="light"] button.bg-gray-800:hover {
-  background-color: #E5E5EA;
-}
-
-/* Botões vermelhos */
-:root[data-theme="light"] .bg-red-500\/10 {
-  background-color: rgba(255, 59, 48, 0.08);
-}
-
-:root[data-theme="light"] .text-red-400 {
-  color: #ff3b30;
-}
-
-/* Botões verdes */
 :root[data-theme="light"] .bg-green-500\/10 {
-  background-color: rgba(52, 199, 89, 0.08);
+  background-color: rgba(52, 199, 89, 0.1) !important;
 }
 
 :root[data-theme="light"] .bg-green-500\/20 {
-  background-color: rgba(52, 199, 89, 0.12);
+  background-color: rgba(52, 199, 89, 0.15) !important;
 }
 
-:root[data-theme="light"] .text-green-400 {
-  color: #34c759;
+:root[data-theme="light"] .bg-red-500\/10 {
+  background-color: rgba(255, 59, 48, 0.1) !important;
 }
 
-/* Botões amarelos (warning) */
+:root[data-theme="light"] .bg-red-500\/20 {
+  background-color: rgba(255, 59, 48, 0.15) !important;
+}
+
 :root[data-theme="light"] .bg-yellow-500\/10 {
-  background-color: rgba(255, 149, 0, 0.08);
-}
-
-:root[data-theme="light"] .text-yellow-400 {
-  color: #ff9500;
+  background-color: rgba(255, 149, 0, 0.1) !important;
 }
 
 :root[data-theme="light"] .bg-yellow-500\/20 {
-  background-color: rgba(255, 149, 0, 0.12);
+  background-color: rgba(255, 149, 0, 0.15) !important;
 }
 
-/* Animações existentes (mantidas) */
+:root[data-theme="light"] .border-green-500\/30 {
+  border-color: rgba(52, 199, 89, 0.3) !important;
+}
+
+:root[data-theme="light"] .border-red-500\/30 {
+  border-color: rgba(255, 59, 48, 0.3) !important;
+}
+
+:root[data-theme="light"] .border-yellow-500\/30 {
+  border-color: rgba(255, 149, 0, 0.3) !important;
+}
+
+/* Animações */
 @keyframes pulse-red-glow {
   0%, 100% {
     box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.95),
