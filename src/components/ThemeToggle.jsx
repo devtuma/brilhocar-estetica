@@ -40,16 +40,28 @@ export default function ThemeToggle({ size = 'md' }) {
   ];
 
   return (
-    <div className="flex items-center gap-1 bg-black/30 rounded-xl p-1 border border-gray-700">
+    <div
+      className="flex items-center gap-1 rounded-xl p-1 border transition-colors"
+      style={{
+        backgroundColor: 'var(--color-surface-2)',
+        borderColor: 'var(--color-border)',
+      }}
+    >
       {modes.map(mode => (
         <button
           key={mode.key}
           onClick={() => setUserMode(mode.key)}
-          className={`${btnSize} rounded-lg transition-all flex items-center justify-center ${
+          className={`p-2 rounded-lg transition-all flex items-center justify-center ${
             userMode === mode.key
-              ? 'bg-primary text-black'
-              : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              ? 'shadow-sm'
+              : 'opacity-60 hover:opacity-100'
           }`}
+          style={userMode === mode.key ? {
+            backgroundColor: 'var(--color-primary)',
+            color: 'var(--color-on-primary)',
+          } : {
+            color: 'var(--color-text)',
+          }}
           title={mode.label}
           aria-label={mode.label}
         >

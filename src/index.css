@@ -3,7 +3,10 @@
 @tailwind utilities;
 
 @layer base {
-  /* Tema dark (padrão) - variáveis CSS injetadas via TenantContext */
+  /* ============================================
+     TEMA DARK (padrão BrilhoCar)
+     Mantém o visual atual
+     ============================================ */
   :root,
   :root[data-theme="dark"] {
     --color-primary: #00e676;
@@ -12,82 +15,227 @@
     --color-accent: #D4AF37;
     --color-background: #0a0a0f;
     --color-surface: #151515;
+    --color-surface-2: #1f1f23;
     --color-text: #FFFFFF;
-    --color-text-muted: #999999;
-    --color-border: #333333;
+    --color-text-muted: #9ca3af;
+    --color-text-soft: #d1d5db;
+    --color-border: #2a2a2e;
+    --color-border-strong: #3a3a3e;
+    --color-shadow: rgba(0, 0, 0, 0.5);
+    --color-shadow-soft: rgba(0, 0, 0, 0.3);
   }
 
-  /* Tema light */
+  /* ============================================
+     TEMA LIGHT - padrão Apple
+     Branco puro, cinzas suaves, sombras delicadas
+     ============================================ */
   :root[data-theme="light"] {
-    --color-primary: #00c853;
-    --color-primary-hover: #00a843;
+    --color-primary: #007AFF;
+    --color-primary-hover: #0066d6;
     --color-on-primary: #FFFFFF;
-    --color-accent: #B8941F;
+    --color-accent: #D4AF37;
     --color-background: #FFFFFF;
-    --color-surface: #F5F5F5;
-    --color-text: #0a0a0f;
-    --color-text-muted: #666666;
-    --color-border: #E5E5E5;
+    --color-surface: #F2F2F7;
+    --color-surface-2: #FFFFFF;
+    --color-text: #1d1d1f;
+    --color-text-muted: #6e6e73;
+    --color-text-soft: #424245;
+    --color-border: #d2d2d7;
+    --color-border-strong: #8e8e93;
+    --color-shadow: rgba(0, 0, 0, 0.08);
+    --color-shadow-soft: rgba(0, 0, 0, 0.04);
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-text);
     transition: background-color 0.3s ease, color 0.3s ease;
+    font-feature-settings: "ss01", "cv01";
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* Classes utilitárias que usam CSS variables */
-  .bg-themed {
-    background-color: var(--color-background);
-  }
-
-  .text-themed {
-    color: var(--color-text);
-  }
-
-  .surface-themed {
-    background-color: var(--color-surface);
-  }
-
-  .border-themed {
-    border-color: var(--color-border);
-  }
-
-  /* Auto-contraste para textos que ficam em fundos de cor primária */
-  .on-primary {
-    color: var(--color-on-primary);
-  }
-
-  /* Ajustes específicos para o tema light */
-  :root[data-theme="light"] .text-gray-400 {
-    color: #4b5563;
-  }
-
-  :root[data-theme="light"] .text-gray-500 {
-    color: #6b7280;
-  }
-
-  :root[data-theme="light"] .bg-gray-900 {
-    background-color: #f9fafb;
-  }
-
-  :root[data-theme="light"] .bg-gray-800 {
-    background-color: #f3f4f6;
-  }
-
-  :root[data-theme="light"] .bg-gray-700 {
-    background-color: #e5e7eb;
-  }
-
-  :root[data-theme="light"] .border-gray-700 {
-    border-color: #d1d5db;
-  }
-
-  :root[data-theme="light"] .border-gray-800 {
-    border-color: #e5e7eb;
-  }
+  /* Classes utilitárias com CSS variables */
+  .bg-themed { background-color: var(--color-background); }
+  .text-themed { color: var(--color-text); }
+  .surface-themed { background-color: var(--color-surface); }
+  .border-themed { border-color: var(--color-border); }
+  .on-primary { color: var(--color-on-primary); }
 }
 
+/* ============================================
+   OVERRIDES ESPECÍFICOS DO LIGHT MODE
+   Estilo Apple: limpo, arejado, com sombras
+   ============================================ */
+:root[data-theme="light"] {
+  /* Backgrounds */
+  --tw-bg-opacity: 1;
+}
+
+:root[data-theme="light"] .bg-\[\#0b0b0f\] {
+  background-color: #FFFFFF;
+}
+
+:root[data-theme="light"] .bg-gray-900 {
+  background-color: #FFFFFF;
+}
+
+:root[data-theme="light"] .bg-gray-800 {
+  background-color: #F2F2F7;
+}
+
+:root[data-theme="light"] .bg-gray-700 {
+  background-color: #E5E5EA;
+}
+
+:root[data-theme="light"] .bg-gray-700\/50 {
+  background-color: rgba(229, 229, 234, 0.5);
+}
+
+:root[data-theme="light"] .bg-black\/30 {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="light"] .bg-black\/50 {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="light"] .bg-black\/80 {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+}
+
+/* Textos */
+:root[data-theme="light"] .text-white {
+  color: #1d1d1f;
+}
+
+:root[data-theme="light"] .text-gray-400 {
+  color: #6e6e73;
+}
+
+:root[data-theme="light"] .text-gray-500 {
+  color: #86868b;
+}
+
+:root[data-theme="light"] .text-gray-300 {
+  color: #424245;
+}
+
+/* Bordas */
+:root[data-theme="light"] .border-gray-700 {
+  border-color: #d2d2d7;
+}
+
+:root[data-theme="light"] .border-gray-800 {
+  border-color: #e5e5ea;
+}
+
+:root[data-theme="light"] .border-gray-600 {
+  border-color: #c7c7cc;
+}
+
+/* Cards do tema dark viram cards brancos com sombra no light */
+:root[data-theme="light"] .shadow-xl {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
+              0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+:root[data-theme="light"] .shadow-2xl {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04),
+              0 16px 32px rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="light"] .shadow-lg {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04),
+              0 8px 16px rgba(0, 0, 0, 0.06);
+}
+
+:root[data-theme="light"] .shadow-md {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04),
+              0 4px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Header com backdrop blur estilo Apple */
+:root[data-theme="light"] header.bg-surface {
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Bottom nav mobile */
+:root[data-theme="light"] nav.bg-surface {
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Footer */
+:root[data-theme="light"] footer.bg-surface {
+  background-color: #F2F2F7;
+  border-top: 1px solid #d2d2d7;
+}
+
+/* Inputs mais limpos */
+:root[data-theme="light"] input,
+:root[data-theme="light"] select,
+:root[data-theme="light"] textarea {
+  background-color: #FFFFFF;
+  border-color: #d2d2d7;
+  color: #1d1d1f;
+}
+
+:root[data-theme="light"] input::placeholder {
+  color: #86868b;
+}
+
+/* Botões secondary ficam mais sutis */
+:root[data-theme="light"] button.bg-gray-800 {
+  background-color: #F2F2F7;
+  color: #1d1d1f;
+}
+
+:root[data-theme="light"] button.bg-gray-800:hover {
+  background-color: #E5E5EA;
+}
+
+/* Botões vermelhos */
+:root[data-theme="light"] .bg-red-500\/10 {
+  background-color: rgba(255, 59, 48, 0.08);
+}
+
+:root[data-theme="light"] .text-red-400 {
+  color: #ff3b30;
+}
+
+/* Botões verdes */
+:root[data-theme="light"] .bg-green-500\/10 {
+  background-color: rgba(52, 199, 89, 0.08);
+}
+
+:root[data-theme="light"] .bg-green-500\/20 {
+  background-color: rgba(52, 199, 89, 0.12);
+}
+
+:root[data-theme="light"] .text-green-400 {
+  color: #34c759;
+}
+
+/* Botões amarelos (warning) */
+:root[data-theme="light"] .bg-yellow-500\/10 {
+  background-color: rgba(255, 149, 0, 0.08);
+}
+
+:root[data-theme="light"] .text-yellow-400 {
+  color: #ff9500;
+}
+
+:root[data-theme="light"] .bg-yellow-500\/20 {
+  background-color: rgba(255, 149, 0, 0.12);
+}
+
+/* Animações existentes (mantidas) */
 @keyframes pulse-red-glow {
   0%, 100% {
     box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.95),
