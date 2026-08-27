@@ -24,8 +24,8 @@ async function captureScreenshots() {
 
     try {
       // Navigate to page
-      await page.goto(`${BASE_URL}${path}`, { waitUntil: 'networkidle', timeout: 10000 });
-      await page.waitForTimeout(1500);
+      await page.goto(`${BASE_URL}${path}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      await page.waitForTimeout(2500); // Extra time for React hydration
 
       // Check if sun button is active (light mode)
       // Look for the theme toggle button - it should have ☀️ as active when in light mode
