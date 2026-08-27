@@ -43,7 +43,7 @@ export default function ThemeToggle({ size = 'md' }) {
     <div
       className="flex items-center gap-1 rounded-xl p-1 border transition-colors"
       style={{
-        backgroundColor: 'var(--color-surface-2)',
+        backgroundColor: 'var(--color-surface)',
         borderColor: 'var(--color-border)',
       }}
     >
