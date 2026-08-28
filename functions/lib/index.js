@@ -50,7 +50,7 @@ const db = admin.firestore();
 // IMPORTANTE: Admin SDK aceita ambos os formatos (.appspot.com OU .firebasestorage.app)
 // mas o mais confiável é .appspot.com (formato legacy)
 const STORAGE_BUCKET = process.env.STORAGE_BUCKET
-    || 'brilhocar-estetica-9f14b.appspot.com';
+    || 'brilhocar-estetica-9f14b-storage';
 function getStorageBucket() {
     const bucket = admin.storage().bucket(STORAGE_BUCKET);
     console.log(`[Storage] Bucket usado: ${bucket.name}`);
