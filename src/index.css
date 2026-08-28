@@ -52,20 +52,20 @@
     --color-on-primary: #FFFFFF;
     --color-accent: #B8941F;
 
-    /* Surfaces */
+    /* Surfaces - mais contraste entre background e surface */
     --color-background: #FFFFFF;
-    --color-surface: #F5F5F7;
+    --color-surface: #F2F2F7;
     --color-surface-elevated: #FFFFFF;
 
     /* Text */
     --color-text: #1d1d1f;
-    --color-text-secondary: #424245;
+    --color-text-secondary: #3a3a3c;
     --color-text-tertiary: #6e6e73;
     --color-text-muted: #86868b;
 
-    /* Borders */
-    --color-border: rgba(0, 0, 0, 0.08);
-    --color-border-strong: rgba(0, 0, 0, 0.15);
+    /* Borders - mais visíveis no light para destacar cards */
+    --color-border: rgba(0, 0, 0, 0.1);
+    --color-border-strong: rgba(0, 0, 0, 0.2);
 
     /* Status (mantidos Apple) */
     --color-success: #1a7f37;

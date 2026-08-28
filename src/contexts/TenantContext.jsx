@@ -187,18 +187,45 @@ export function TenantProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   // Calcular tema efetivo com base em tenant + override do usuário
+  // Modos do usuário:
+  //   'light' / 'dark' → força esse
+  //   'auto' → segue prefers-color-scheme do SO; se não tiver, usa tenant.themeMode
   const computeEffectiveTheme = useCallback((tenantData) => {
+    const userOverride = localStorage.getItem('user-theme-mode');
+    if (userOverride === 'light' || userOverride === 'dark') {
+      return userOverride;
+    }
+    // Auto: preferir esquema do sistema operacional
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+      if (prefersLight) return 'light';
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (prefersDark) return 'dark';
+    }
+    // Fallback: tenant.themeMode → dark/light ou auto via luminance
     const themeMode = tenantData.themeMode || 'auto';
     const primaryColor = tenantData.primaryColor || DEFAULT_TENANT.primaryColor;
-    let tenantTheme;
-    if (themeMode === 'auto') {
-      tenantTheme = autoSelectTheme(primaryColor);
-    } else {
-      tenantTheme = themeMode;
-    }
-    const userOverride = localStorage.getItem('user-theme-mode');
-    return (userOverride && userOverride !== 'auto') ? userOverride : tenantTheme;
+    if (themeMode === 'light') return 'light';
+    if (themeMode === 'dark') return 'dark';
+    return autoSelectTheme(primaryColor);
   }, []);
+
+  // Ouvir mudanças no esquema de cores do SO (quando user escolhe 'auto')
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => {
+      // Só reaplica se o usuário está em modo 'auto'
+      const userOverride = localStorage.getItem('user-theme-mode');
+      if (!userOverride || userOverride === 'auto') {
+        const theme = computeEffectiveTheme(tenant);
+        setEffectiveTheme(theme);
+        applyThemeVars(tenant, theme);
+      }
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [tenant, computeEffectiveTheme]);
 
   // Detectar tenant via env, query ou subdomínio
   useEffect(() => {

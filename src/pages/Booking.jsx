@@ -215,14 +215,14 @@ export default function Booking() {
 
   return (
     <div className="max-w-4xl pt-4 md:pt-8 pb-10">
-      <h2 className="text-3xl md:text-4xl font-bold mb-2">Novo Agendamento</h2>
-      <p className="text-sm md:text-base text-gray-400 mb-8 md:mb-12">Selecione os serviços desejados e confirme os dados do seu veículo.</p>
+      <h2 className="text-3xl md:text-4xl font-bold mb-2 text-text">Novo Agendamento</h2>
+      <p className="text-sm md:text-base text-text-secondary mb-8 md:mb-12">Selecione os serviços desejados e confirme os dados do seu veículo.</p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Seleção de Serviços */}
         <div>
-          <label className="block text-sm font-bold text-white mb-3">
-            Serviços <span className="text-gray-500 font-normal">({selectedServices.length} selecionado{selectedServices.length !== 1 ? 's' : ''})</span>
+          <label className="block text-sm font-bold text-text mb-3">
+            Serviços <span className="text-text-muted font-normal">({selectedServices.length} selecionado{selectedServices.length !== 1 ? 's' : ''})</span>
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {servicesList.map(service => {
@@ -235,19 +235,19 @@ export default function Booking() {
                   className={`text-left p-4 rounded-xl border-2 transition-all flex items-center justify-between ${
                     isSelected
                       ? 'bg-primary/10 border-primary'
-                      : 'bg-surface border-gray-800 hover:border-gray-700'
+                      : 'bg-surface border-border hover:border-border-strong'
                   }`}
                 >
                   <div>
-                    <p className={`font-bold ${isSelected ? 'text-primary' : 'text-white'}`}>
+                    <p className={`font-bold ${isSelected ? 'text-primary' : 'text-text'}`}>
                       {service.name}
                     </p>
-                    <p className="text-sm text-gray-400 mt-1">R$ {service.price.toFixed(2)} · ~60min</p>
+                    <p className="text-sm text-text-secondary mt-1">R$ {service.price.toFixed(2)} · ~60min</p>
                   </div>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                    isSelected ? 'bg-primary' : 'bg-gray-800 border border-gray-700'
+                    isSelected ? 'bg-primary' : 'bg-surface-elevated border border-border-strong'
                   }`}>
-                    {isSelected && <Plus className="text-black" size={16} strokeWidth={3} />}
+                    {isSelected && <Plus className="text-on-primary" size={16} strokeWidth={3} />}
                   </div>
                 </button>
               );
@@ -257,10 +257,10 @@ export default function Booking() {
           {selectedServices.length > 0 && (
             <div className="mt-4 p-4 bg-primary/10 border border-primary/30 rounded-xl">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-300 font-semibold">Total estimado:</span>
+                <span className="text-sm text-text font-semibold">Total estimado:</span>
                 <span className="text-2xl font-black text-primary">R$ {totalPrice.toFixed(2)}</span>
               </div>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-text-secondary mt-1">
                 Duração estimada: ~{totalDuration} minutos ({Math.floor(totalDuration / 60)}h{totalDuration % 60 > 0 ? `${totalDuration % 60}min` : ''})
               </p>
             </div>
@@ -270,7 +270,7 @@ export default function Booking() {
         {/* Dados pessoais */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-4">
-            <input required type="text" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" placeholder="Seu Nome" />
+            <input required type="text" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full bg-surface text-text border border-border font-semibold rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary placeholder-text-muted" placeholder="Seu Nome" />
           </div>
 
           <div className="space-y-4">
@@ -279,17 +279,17 @@ export default function Booking() {
               <button
                 type="button"
                 onClick={() => setShowVehiclePicker(true)}
-                className={`w-full text-left bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-between transition-all ${
+                className={`w-full text-left bg-surface text-text border border-border font-semibold rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary flex items-center justify-between transition-all ${
                   carroError ? 'animate-pulse-red' : ''
                 }`}
               >
-                <span className={selectedCar ? 'text-black' : 'text-gray-500'}>
+                <span className={selectedCar ? 'text-text' : 'text-text-muted'}>
                   {selectedCar ? `${selectedCar.modelo} - ${selectedCar.placa}` : 'Selecione o carro'}
                 </span>
-                <Car size={18} className="text-gray-500" />
+                <Car size={18} className="text-text-muted" />
               </button>
               {carroError && (
-                <p className="text-red-500 text-xs mt-1 flex items-center gap-1 font-semibold">
+                <p className="text-danger text-xs mt-1 flex items-center gap-1 font-semibold">
                   <AlertCircle size={12} /> Selecione um carro para continuar
                 </p>
               )}
@@ -299,18 +299,18 @@ export default function Booking() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-4">
-            <input required type="text" value={formData.car} onChange={e=>setFormData({...formData, car: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500" placeholder="Modelo do veículo" />
+            <input required type="text" value={formData.car} onChange={e=>setFormData({...formData, car: e.target.value})} className="w-full bg-surface text-text border border-border font-semibold rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary placeholder-text-muted" placeholder="Modelo do veículo" />
           </div>
 
           <div className="space-y-4">
-            <input required type="text" value={formData.plate} onChange={e=>setFormData({...formData, plate: e.target.value.toUpperCase()})} maxLength={8} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary uppercase placeholder-gray-500" placeholder="Placa do Carro (ex: ABC1D23)" />
+            <input required type="text" value={formData.plate} onChange={e=>setFormData({...formData, plate: e.target.value.toUpperCase()})} maxLength={8} className="w-full bg-surface text-text border border-border font-semibold rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary uppercase placeholder-text-muted" placeholder="Placa do Carro (ex: ABC1D23)" />
           </div>
         </div>
 
         {/* Data e Horário com TimeSlotPicker */}
         <div className="space-y-4">
-          <label className="block text-sm font-bold text-white">
-            Data e Horário <span className="text-gray-500 font-normal">(obrigatório)</span>
+          <label className="block text-sm font-bold text-text">
+            Data e Horário <span className="text-text-muted font-normal">(obrigatório)</span>
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
@@ -319,20 +319,20 @@ export default function Booking() {
               value={formData.date}
               onChange={(e) => handleDateChange(e.target.value)}
               min={new Date().toISOString().split('T')[0]}
-              className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full bg-surface text-text border border-border font-semibold rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary"
             />
             <button
               type="button"
               onClick={() => setShowTimeSlotPicker(true)}
               disabled={!formData.date}
-              className={`w-full text-left bg-white font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-between transition-all ${
+              className={`w-full text-left bg-surface text-text border border-border font-semibold rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary flex items-center justify-between transition-all ${
                 !formData.date ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              <span className={formData.time ? 'text-black' : 'text-gray-500'}>
+              <span className={formData.time ? 'text-text' : 'text-text-muted'}>
                 {formData.time || 'Selecione o horário'}
               </span>
-              <span className="text-gray-500 text-sm">
+              <span className="text-text-muted text-sm">
                 {formData.time && '✓'}
               </span>
             </button>
@@ -349,19 +349,19 @@ export default function Booking() {
         </div>
 
         <div className="space-y-4">
-          <textarea value={formData.obs} onChange={e=>setFormData({...formData, obs: e.target.value})} className="w-full bg-white text-black font-semibold rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary placeholder-gray-500 h-[8rem] resize-none" placeholder="Observações (opcional)"></textarea>
+          <textarea value={formData.obs} onChange={e=>setFormData({...formData, obs: e.target.value})} className="w-full bg-surface text-text border border-border font-semibold rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary placeholder-text-muted h-[8rem] resize-none" placeholder="Observações (opcional)"></textarea>
         </div>
 
         <div className="mt-8">
           <button
             disabled={loading || selectedServices.length === 0 || !formData.time}
             type="submit"
-            className="bg-primary text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#00c853] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-primary text-on-primary font-semibold px-6 py-3 rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Processando...' : 'Confirmar e Ir para Pagamento'}
           </button>
           {!formData.time && formData.date && (
-            <p className="text-xs text-gray-500 mt-2">Selecione um horário disponível acima</p>
+            <p className="text-xs text-text-muted mt-2">Selecione um horário disponível acima</p>
           )}
         </div>
       </form>
